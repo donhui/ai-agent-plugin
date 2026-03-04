@@ -39,6 +39,6 @@ jobs:
         if: matrix.java == 21
         uses: actions/upload-artifact@v4
         with:
-          name: jenkins-ai-agent-plugin.hpi
-          path: target/jenkins-ai-agent-plugin.hpi
+          name: ai-agent-job.hpi
+          path: target/ai-agent-job.hpi
           retention-days: 30

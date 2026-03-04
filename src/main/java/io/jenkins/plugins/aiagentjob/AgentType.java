@@ -30,6 +30,7 @@ public enum AgentType {
         return defaultApiKeyEnvVar;
     }
 
+    /** Parses persisted or form-submitted values; defaults to {@link #CLAUDE_CODE}. */
     public static AgentType fromString(String value) {
         if (value == null) {
             return CLAUDE_CODE;

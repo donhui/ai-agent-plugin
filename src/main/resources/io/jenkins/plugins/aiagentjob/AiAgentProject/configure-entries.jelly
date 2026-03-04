@@ -44,14 +44,14 @@
       <f:number name="approvalTimeoutSeconds" value="${it.approvalTimeoutSeconds}" min="1" step="1" />
     </f:entry>
 
-    <f:entry title="API Key Credential" field="apiCredentialsId">
+    <f:entry title="API key credential" field="apiCredentialsId">
       <f:select name="apiCredentialsId" />
       <f:description>
         Select a Secret Text credential containing the API key for this agent.
         The key will be injected as the appropriate environment variable
         (e.g. ANTHROPIC_API_KEY for Claude Code, OPENAI_API_KEY for Codex/OpenCode,
         CURSOR_API_KEY for Cursor Agent, GEMINI_API_KEY for Gemini CLI).
-        If left empty, the agent will use whatever key is available on the system.
+        If left empty, the agent uses whatever key is already available on the build node.
       </f:description>
     </f:entry>
 
@@ -68,7 +68,7 @@
     <f:entry title="Use custom Codex config.toml" field="codexCustomConfigEnabled">
       <f:checkbox name="codexCustomConfigEnabled" checked="${it.codexCustomConfigEnabled}" />
       <f:description>
-        Only used when Agent Type is Codex CLI. When enabled, this writes a
+        Only applies when Agent Type is Codex CLI. When enabled, this writes a
         run-scoped <code>~/.codex/config.toml</code> for the build so settings/MCP can be
         overridden per job.
       </f:description>
@@ -78,6 +78,7 @@
       <f:textarea name="codexCustomConfigToml" value="${it.codexCustomConfigToml}" />
       <f:description>
         TOML content equivalent to <code>~/.codex/config.toml</code>.
+        Stored in job configuration as plain text; keep secrets in Jenkins credentials instead.
       </f:description>
     </f:entry>
 

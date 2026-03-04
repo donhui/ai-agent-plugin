@@ -192,10 +192,12 @@ public class AiAgentRunAction implements Action, RunAction2 {
         }
     }
 
+    /** Location of the persisted JSONL stream for this build. */
     public File getRawLogFile() {
         return new File(run.getRootDir(), RAW_LOG_FILE);
     }
 
+    /** Approves one pending tool call by approval id. */
     @RequirePOST
     public Object doApprove(@QueryParameter String id) {
         checkBuildPermission();
@@ -209,6 +211,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
         return HttpResponses.redirectToDot();
     }
 
+    /** Denies one pending tool call by approval id. */
     @RequirePOST
     public Object doDeny(@QueryParameter String id, @QueryParameter String reason) {
         checkBuildPermission();
@@ -222,6 +225,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
         return HttpResponses.redirectToDot();
     }
 
+    /** Progressive JSON endpoint consumed by the conversation UI for incremental event polling. */
     public void doProgressiveEvents(StaplerRequest2 request, StaplerResponse2 response)
             throws IOException {
         checkReadPermission();
@@ -309,6 +313,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
         response.getWriter().write(result.toString());
     }
 
+    /** Streams the raw JSONL capture for this build. */
     public void doRaw(StaplerRequest2 request, StaplerResponse2 response) throws IOException {
         checkReadPermission();
         File raw = getRawLogFile();

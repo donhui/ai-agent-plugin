@@ -30,4 +30,4 @@ jobs:
       - name: Upload HPI to release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ github.event.release.tag_name }}" target/jenkins-ai-agent-plugin.hpi --clobber
+        run: gh release upload "${{ github.event.release.tag_name }}" target/ai-agent-job.hpi --clobber

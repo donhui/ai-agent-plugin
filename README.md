@@ -1,11 +1,13 @@
-# Jenkins AI Agent Job Plugin
+# AI Agent Job
 
-[![CI](https://github.com/brunocvcunha/jenkins-ai-agent-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/brunocvcunha/jenkins-ai-agent-plugin/actions/workflows/ci.yml)
+[![CI](https://github.com/bvolpato/jenkins-ai-agent-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/bvolpato/jenkins-ai-agent-plugin/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Jenkins Plugin](https://img.shields.io/badge/Jenkins-2.479+-blue.svg)](https://www.jenkins.io/)
 
 A Jenkins plugin that adds a native **AI Agent Job** type for running autonomous coding agents
 (Claude Code, Codex CLI, Cursor Agent, OpenCode, Gemini CLI) as first-class Jenkins builds.
+
+Plugin ID (artifactId): `ai-agent-job`
 
 ## Features
 
@@ -125,7 +127,7 @@ Requires Java 17+ and Maven 3.9+.
 mvn clean verify
 ```
 
-The plugin artifact is generated at `target/jenkins-ai-agent-plugin.hpi`.
+The plugin artifact is generated at `target/ai-agent-job.hpi`.
 
 To package without running tests:
 
@@ -164,9 +166,9 @@ src/main/java/io/jenkins/plugins/aiagentjob/
 ├── AgentType.java                  # Enum of supported agents with command templates
 ├── AiAgentCommandFactory.java      # Command-line construction per agent
 ├── ExecutionRegistry.java          # In-memory registry for live execution state
-└── AiAgentCredentialInjection.java # Credential resolution and env injection
+└── package-info.java               # Package-level API documentation
 ```
 
 ## License
 
-MIT License. See [LICENSE](https://opensource.org/licenses/MIT) for details.
+MIT License. See [LICENSE](LICENSE) for details.

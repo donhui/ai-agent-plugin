@@ -9,13 +9,13 @@
     <relativePath />
   </parent>
 
-  <artifactId>jenkins-ai-agent-plugin</artifactId>
+  <artifactId>ai-agent-job</artifactId>
   <version>${revision}${changelist}</version>
   <packaging>hpi</packaging>
 
-  <name>Jenkins AI Agent Job Plugin</name>
-  <description>Native Jenkins job type to execute AI coding agents with stream-json logs and interactive approvals.</description>
-  <url>https://github.com/jenkinsci/jenkins-ai-agent-plugin</url>
+  <name>AI Agent Job</name>
+  <description>Native Jenkins job type to execute AI coding agents with streaming JSON logs and interactive approvals.</description>
+  <url>https://github.com/bvolpato/jenkins-ai-agent-plugin</url>
 
   <licenses>
     <license>
@@ -25,7 +25,7 @@
   </licenses>
 
   <properties>
-    <revision>0.5.0</revision>
+    <revision>0.6.0</revision>
     <changelist>-SNAPSHOT</changelist>
     <jenkins.baseline>2.479</jenkins.baseline>
     <jenkins.version>${jenkins.baseline}.3</jenkins.version>

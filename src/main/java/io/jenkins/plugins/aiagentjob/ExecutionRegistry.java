@@ -38,6 +38,7 @@ public final class ExecutionRegistry {
         LIVE_RUNS.remove(run.getExternalizableId());
     }
 
+    /** Live mutable state for one running build. */
     public static final class LiveExecution {
         private final Map<String, PendingApproval> pendingApprovals = new ConcurrentHashMap<>();
         private final Map<String, CompletableFuture<ApprovalDecision>> decisions =
@@ -109,6 +110,7 @@ public final class ExecutionRegistry {
         }
     }
 
+    /** Immutable view model for one outstanding approval request. */
     public static final class PendingApproval {
         private final String id;
         private final String toolCallId;
@@ -150,6 +152,7 @@ public final class ExecutionRegistry {
         }
     }
 
+    /** Result of a user approval decision. */
     public static final class ApprovalDecision {
         private final boolean approved;
         private final String reason;
