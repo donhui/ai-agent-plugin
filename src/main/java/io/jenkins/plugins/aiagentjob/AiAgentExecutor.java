@@ -13,7 +13,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.BuildListener;
 import hudson.model.Run;
 
-import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
 import java.io.BufferedWriter;
@@ -310,7 +309,7 @@ final class AiAgentExecutor {
     }
 
     private static FilePath resolveRunDirectory(FilePath workspace, String workDirValue) {
-        String trimmed = StringUtils.trimToEmpty(workDirValue);
+        String trimmed = Util.fixNull(workDirValue).trim();
         if (trimmed.isEmpty()) {
             return workspace;
         }

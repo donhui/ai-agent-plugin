@@ -14,6 +14,7 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.kohsuke.stapler.verb.GET;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -226,6 +227,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
     }
 
     /** Progressive JSON endpoint consumed by the conversation UI for incremental event polling. */
+    @GET
     public void doProgressiveEvents(StaplerRequest2 request, StaplerResponse2 response)
             throws IOException {
         checkReadPermission();
@@ -314,6 +316,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
     }
 
     /** Streams the raw JSONL capture for this build. */
+    @GET
     public void doRaw(StaplerRequest2 request, StaplerResponse2 response) throws IOException {
         checkReadPermission();
         File raw = getRawLogFile();

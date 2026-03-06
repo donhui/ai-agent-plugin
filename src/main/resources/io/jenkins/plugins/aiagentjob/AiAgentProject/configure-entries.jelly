@@ -12,8 +12,8 @@
   <f:section title="AI Agent Execution">
     <f:entry title="Agent Type">
       <select class="setting-input" name="agentType">
-        <j:forEach var="option" items="${descriptor.doFillAgentTypeItems()}">
-          <f:option value="${option.value}" selected="${option.value == it.agentType.name()}">${option.name}</f:option>
+        <j:forEach var="option" items="${it.agentTypes}">
+          <f:option value="${option.name()}" selected="${option == it.agentType}">${option.displayName}</f:option>
         </j:forEach>
       </select>
     </f:entry>
@@ -41,7 +41,7 @@
     </f:entry>
 
     <f:entry title="Approval timeout (seconds)" field="approvalTimeoutSeconds">
-      <f:number name="approvalTimeoutSeconds" value="${it.approvalTimeoutSeconds}" min="1" step="1" />
+      <f:number name="approvalTimeoutSeconds" value="${it.approvalTimeoutSeconds}" min="1" step="1" checkMethod="post" />
     </f:entry>
 
     <f:entry title="API key credential" field="apiCredentialsId">

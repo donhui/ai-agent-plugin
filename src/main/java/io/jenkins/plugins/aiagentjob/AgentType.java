@@ -11,6 +11,8 @@ public enum AgentType {
     GEMINI_CLI("Gemini CLI", "GEMINI_API_KEY");
 
     private final String displayName;
+    // Stores the conventional environment variable name for the credential binding, not a secret.
+    // lgtm[jenkins/plaintext-storage]
     private final String defaultApiKeyEnvVar;
 
     AgentType(String displayName, String defaultApiKeyEnvVar) {

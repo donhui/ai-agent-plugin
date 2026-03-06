@@ -1,7 +1,6 @@
 package io.jenkins.plugins.aiagentjob;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 
@@ -29,6 +28,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
+import org.kohsuke.stapler.verb.POST;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -53,6 +53,8 @@ public class AiAgentProject extends FreeStyleProject {
     private boolean codexCustomConfigEnabled;
     private String codexCustomConfigToml = "";
     private String apiCredentialsId = "";
+    // Stores only the environment variable name used for injecting the credential value.
+    // lgtm[jenkins/plaintext-storage]
     private String apiKeyEnvVar = "";
 
     public AiAgentProject(ItemGroup parent, String name) {
@@ -111,6 +113,10 @@ public class AiAgentProject extends FreeStyleProject {
 
     public AgentType getAgentType() {
         return agentType;
+    }
+
+    public AgentType[] getAgentTypes() {
+        return AgentType.values();
     }
 
     public void setAgentType(AgentType agentType) {
@@ -357,27 +363,11 @@ public class AiAgentProject extends FreeStyleProject {
             return "build";
         }
 
-        public ListBoxModel doFillAgentTypeItems() {
-            ListBoxModel model = new ListBoxModel();
-            for (AgentType type : AgentType.values()) {
-                model.add(type.getDisplayName(), type.name());
-            }
-            return model;
-        }
-
+        @POST
         public ListBoxModel doFillApiCredentialsIdItems(
                 @AncestorInPath Item item, @QueryParameter String apiCredentialsId) {
+            checkConfigurationPermission(item);
             StandardListBoxModel result = new StandardListBoxModel();
-            if (item == null) {
-                if (!Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
-                    return result.includeCurrentValue(apiCredentialsId);
-                }
-            } else {
-                if (!item.hasPermission(Item.EXTENDED_READ)
-                        && !item.hasPermission(CredentialsProvider.USE_ITEM)) {
-                    return result.includeCurrentValue(apiCredentialsId);
-                }
-            }
             return result.includeEmptyValue()
                     .includeMatchingAs(
                             item instanceof hudson.model.Queue.Task
@@ -390,7 +380,10 @@ public class AiAgentProject extends FreeStyleProject {
                     .includeCurrentValue(apiCredentialsId);
         }
 
-        public FormValidation doCheckApprovalTimeoutSeconds(@QueryParameter String value) {
+        @POST
+        public FormValidation doCheckApprovalTimeoutSeconds(
+                @AncestorInPath Item item, @QueryParameter String value) {
+            checkConfigurationPermission(item);
             if (value == null || value.trim().isEmpty()) {
                 return FormValidation.error("Timeout is required.");
             }
@@ -407,6 +400,14 @@ public class AiAgentProject extends FreeStyleProject {
             } catch (NumberFormatException e) {
                 return FormValidation.error("Timeout must be a number.");
             }
+        }
+
+        private static void checkConfigurationPermission(Item item) {
+            if (item != null) {
+                item.checkPermission(Item.CONFIGURE);
+                return;
+            }
+            Jenkins.get().checkPermission(Item.CREATE);
         }
     }
 }
