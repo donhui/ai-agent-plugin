@@ -1,9 +1,9 @@
-{"type":"system","subtype":"init","model":"gemini-2.5-pro","session_id":"gemini-sess-01"}
-{"type":"thinking","text":"Analyzing the user's request to review the project files."}
-{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"I'll review the project files for you. Let me start by examining the directory structure."}]}}
-{"type":"tool_call","tool_name":"run_shell_command","tool_call_id":"tc_001","text":"ls -la"}
-{"type":"tool_result","tool_call_id":"tc_001","tool_name":"run_shell_command","text":"total 16\n-rw-r--r-- 1 user staff 256 main.py\n-rw-r--r-- 1 user staff 128 requirements.txt"}
-{"type":"tool_call","tool_name":"read_file","tool_call_id":"tc_002","text":"main.py"}
-{"type":"tool_result","tool_call_id":"tc_002","tool_name":"read_file","text":"import flask\napp = flask.Flask(__name__)\n\n@app.route('/')\ndef hello():\n    return 'Hello, World!'"}
-{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"This is a Flask web application. The project contains:\n1. main.py - A Flask app with a single route\n2. requirements.txt - Project dependencies"}]}}
-{"type":"result","subtype":"success","is_error":false,"duration_ms":2800}
+{"type":"init","timestamp":"2026-03-07T03:24:37.343Z","session_id":"212327e6-142f-4afe-a7b9-0a2468f21bfe","model":"gemini-3.1-pro-preview"}
+{"type":"message","timestamp":"2026-03-07T03:24:37.343Z","role":"user","content":"summarize this project for me"}
+{"type":"tool_use","timestamp":"2026-03-07T03:24:42.351Z","tool_name":"read_file","tool_id":"read_file_1772853882351_0","parameters":{"file_path":"/Users/bruno.volpato/githubworkspace/jenkins-ai-agent-plugin/README.md"}}
+{"type":"tool_use","timestamp":"2026-03-07T03:24:42.438Z","tool_name":"read_file","tool_id":"read_file_1772853882438_1","parameters":{"file_path":"/Users/bruno.volpato/githubworkspace/jenkins-ai-agent-plugin/pom.xml"}}
+{"type":"tool_result","timestamp":"2026-03-07T03:24:42.534Z","tool_id":"read_file_1772853882351_0","status":"success","output":""}
+{"type":"tool_result","timestamp":"2026-03-07T03:24:42.534Z","tool_id":"read_file_1772853882438_1","status":"success","output":""}
+{"type":"message","timestamp":"2026-03-07T03:24:51.877Z","role":"assistant","content":"This project, **Jenkins AI Agent Plugin**, is a Jenkins plugin that introduces a native **AI Agent Job** type.","delta":true}
+{"type":"message","timestamp":"2026-03-07T03:24:53.737Z","role":"assistant","content":"It supports live conversation views, approval gates, and usage statistics for multiple coding agents.","delta":true}
+{"type":"result","timestamp":"2026-03-07T03:24:55.825Z","status":"success","stats":{"total_tokens":17401,"input_tokens":15940,"output_tokens":612,"cached":6143,"input":9797,"duration_ms":18483,"tool_calls":2}}

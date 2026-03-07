@@ -101,6 +101,9 @@ final class AiAgentLogParser {
         if (typeLower.equals("result")) {
             String resultText = firstNonEmpty(json, "result", "error");
             boolean isError = json.optBoolean("is_error", false);
+            if (resultText.isEmpty()) {
+                return ParsedLine.raw(lineNumber, "");
+            }
             String durationMs = firstNonEmpty(json, "duration_ms");
             String label = isError ? "Error" : "Result";
             String suffix = "";
@@ -129,6 +132,16 @@ final class AiAgentLogParser {
                 return ParsedLine.raw(lineNumber, "");
             }
             return ParsedLine.system(lineNumber, "System", initText, rawDetails);
+        }
+
+        if (typeLower.equals("step_start")
+                || typeLower.equals("step_finish")
+                || typeLower.equals("tool_use")
+                || typeLower.equals("text")) {
+            JSONObject part = json.optJSONObject("part");
+            if (part != null) {
+                return classifyOpenCodePartEvent(lineNumber, typeLower, part, rawDetails);
+            }
         }
 
         // Claude: assistant/user message with content array
@@ -360,6 +373,62 @@ final class AiAgentLogParser {
         return ParsedLine.system(lineNumber, "System", itemText, rawDetails);
     }
 
+    private static ParsedLine classifyOpenCodePartEvent(
+            long lineNumber, String typeLower, JSONObject part, String rawDetails) {
+        String partType = normalize(part.optString("type"));
+
+        if (typeLower.equals("text") || partType.equals("text")) {
+            String text = firstNonEmpty(part, "text");
+            if (text.isEmpty()) {
+                return ParsedLine.raw(lineNumber, "");
+            }
+            return ParsedLine.message(lineNumber, "assistant", "Assistant", text, rawDetails);
+        }
+
+        if (typeLower.equals("tool_use") || partType.equals("tool")) {
+            return classifyOpenCodeToolPart(lineNumber, part, rawDetails);
+        }
+
+        if (typeLower.equals("step_start")
+                || typeLower.equals("step_finish")
+                || partType.equals("step-start")
+                || partType.equals("step-finish")) {
+            return ParsedLine.raw(lineNumber, "");
+        }
+
+        String partText = extractText(part);
+        if (partText.isEmpty()) {
+            return ParsedLine.raw(lineNumber, "");
+        }
+        return ParsedLine.system(lineNumber, "System", partText, rawDetails);
+    }
+
+    private static ParsedLine classifyOpenCodeToolPart(
+            long lineNumber, JSONObject part, String rawDetails) {
+        String toolName = firstNonEmpty(part, "tool", "tool_name", "name");
+        String toolCallId =
+                firstNonEmpty(part, "callID", "callId", "call_id", "tool_call_id", "id");
+        JSONObject state = part.optJSONObject("state");
+        if (state == null) {
+            return ParsedLine.raw(lineNumber, "");
+        }
+
+        String toolInput = extractToolInput(state.optJSONObject("input"), toolName);
+        String toolOutput = extractOpenCodeToolOutput(state);
+        String status = normalize(firstNonEmpty(state, "status"));
+
+        if (!toolOutput.isEmpty()) {
+            return ParsedLine.toolResult(lineNumber, toolName, toolOutput, rawDetails, toolCallId);
+        }
+        if ("completed".equals(status)) {
+            return ParsedLine.raw(lineNumber, "");
+        }
+        if (toolInput.isEmpty()) {
+            return ParsedLine.raw(lineNumber, "");
+        }
+        return ParsedLine.toolCall(lineNumber, toolName, toolInput, rawDetails, toolCallId);
+    }
+
     private static ParsedLine classifyCursorToolCall(
             long lineNumber, JSONObject json, String rawDetails) {
         String subtype = normalize(firstNonEmpty(json, "subtype"));
@@ -431,15 +500,16 @@ final class AiAgentLogParser {
         if (input == null) return "";
         String command = firstNonEmpty(input, "command");
         if (!command.isEmpty()) return command;
-        String filePath = firstNonEmpty(input, "file_path", "path");
+        String filePath = firstNonEmpty(input, "file_path", "filePath", "path");
         if (!filePath.isEmpty()) {
-            String extra = firstNonEmpty(input, "old_string", "pattern", "text", "query");
+            String extra =
+                    firstNonEmpty(input, "old_string", "oldString", "pattern", "text", "query");
             if (!extra.isEmpty()) {
                 return filePath + " — " + excerpt(extra, 200);
             }
             return filePath;
         }
-        String text = firstNonEmpty(input, "pattern", "text", "url", "query");
+        String text = firstNonEmpty(input, "pattern", "text", "url", "query", "glob");
         if (!text.isEmpty()) return text;
         return input.toString(2);
     }
@@ -453,6 +523,28 @@ final class AiAgentLogParser {
             return joinTextArray((JSONArray) contentObj);
         }
         String text = firstNonEmpty(json, "output", "text", "result");
+        if (!text.isEmpty()) return text;
+        return "";
+    }
+
+    private static String extractOpenCodeToolOutput(JSONObject state) {
+        if (state == null) return "";
+
+        Object outputObj = state.opt("output");
+        if (outputObj instanceof String) {
+            return (String) outputObj;
+        }
+        if (outputObj instanceof JSONArray) {
+            return joinTextArray((JSONArray) outputObj);
+        }
+        if (outputObj instanceof JSONObject) {
+            JSONObject output = (JSONObject) outputObj;
+            String text = firstNonEmpty(output, "text", "content", "value", "stdout", "stderr");
+            if (!text.isEmpty()) return text;
+            if (!output.isEmpty()) return output.toString(2);
+        }
+
+        String text = firstNonEmpty(state, "stdout", "stderr", "result");
         if (!text.isEmpty()) return text;
         return "";
     }

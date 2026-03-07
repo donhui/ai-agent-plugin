@@ -166,7 +166,7 @@ public class AiAgentRunActionTest {
     }
 
     @Test
-    public void events_emptyWhenNoLogFile() throws Exception {
+    public void events_emptyWhenLogContainsOnlyHiddenBookkeeping() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
         AiAgentProject project = jenkins.createProject(AiAgentProject.class, "test-no-log");
@@ -182,7 +182,7 @@ public class AiAgentRunActionTest {
 
         List<AiAgentLogParser.EventView> events = action.getEvents();
         assertNotNull(events);
-        assertFalse(events.isEmpty());
+        assertTrue(events.isEmpty());
     }
 
     private String buildEchoScript(String fixtureName) throws Exception {

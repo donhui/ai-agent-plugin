@@ -106,7 +106,9 @@ public class AiAgentRecordedConversationTest {
                         .collect(Collectors.toList());
         assertTrue("Should have thinking", cats.contains("thinking"));
         assertTrue("Should have tool_call", cats.contains("tool_call"));
+        assertTrue("Should have tool_result", cats.contains("tool_result"));
         assertTrue("Should have assistant", cats.contains("assistant"));
+        assertEquals("Current Codex fixture should render 6 visible events", 6, events.size());
     }
 
     @Test
@@ -155,12 +157,16 @@ public class AiAgentRecordedConversationTest {
                         .map(AiAgentLogParser.EventView::getCategory)
                         .collect(Collectors.toList());
         assertTrue("Should have system", cats.contains("system"));
+        assertTrue("Should have user", cats.contains("user"));
         assertTrue("Should have tool_call", cats.contains("tool_call"));
         assertTrue("Should have assistant", cats.contains("assistant"));
+        assertFalse("Empty Gemini tool results should stay hidden", cats.contains("tool_result"));
+        assertFalse("Stats-only Gemini result should stay hidden", cats.contains("result"));
+        assertEquals("Current Gemini fixture should render 6 visible events", 6, events.size());
     }
 
     @Test
-    public void openCodeRecording_producesCorrectEvents() throws Exception {
+    public void openCodeRecording_showsCompletedToolOutputs() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
         AiAgentProject project =
@@ -171,16 +177,18 @@ public class AiAgentRecordedConversationTest {
         AiAgentRunAction action = build.getAction(AiAgentRunAction.class);
         assertNotNull(action);
 
-        List<AiAgentLogParser.EventView> events = action.getEvents();
-        assertFalse("Should have events", events.isEmpty());
-
-        List<String> cats =
-                events.stream()
-                        .map(AiAgentLogParser.EventView::getCategory)
+        List<AiAgentLogParser.EventView> toolResults =
+                action.getEvents().stream()
+                        .filter(e -> "tool_result".equals(e.getCategory()))
                         .collect(Collectors.toList());
-        assertTrue("Should have system", cats.contains("system"));
-        assertTrue("Should have tool_call", cats.contains("tool_call"));
-        assertTrue("Should have assistant", cats.contains("assistant"));
+        assertEquals("Should have 2 visible completed tool results", 2, toolResults.size());
+        assertTrue(
+                "OpenCode tool result output should be rendered from nested state.output",
+                toolResults.stream().allMatch(e -> !e.getToolOutput().isEmpty()));
+        assertEquals(
+                "Current OpenCode fixture should render 3 visible events",
+                3,
+                action.getEvents().size());
     }
 
     @Test
