@@ -195,6 +195,22 @@ final class AiAgentLogParser {
                 return ParsedLine.toolCall(lineNumber, toolName, toolInput, rawDetails, toolCallId);
             }
         }
+        // Then tool_result blocks wrapped in Claude "user" turns
+        for (int i = 0; i < contentArr.size(); i++) {
+            Object obj = contentArr.get(i);
+            if (!(obj instanceof JSONObject)) continue;
+            JSONObject ci = (JSONObject) obj;
+            if ("tool_result".equals(normalize(ci.optString("type")))) {
+                String toolCallId = firstNonEmpty(ci, "tool_use_id", "tool_call_id", "id");
+                String toolName = firstNonEmpty(ci, "tool_name", "name");
+                String toolOutput = extractToolResultContent(ci);
+                if (toolOutput.isEmpty()) {
+                    return ParsedLine.raw(lineNumber, "");
+                }
+                return ParsedLine.toolResult(
+                        lineNumber, toolName, toolOutput, rawDetails, toolCallId);
+            }
+        }
         // Then thinking
         for (int i = 0; i < contentArr.size(); i++) {
             Object obj = contentArr.get(i);
@@ -220,6 +236,9 @@ final class AiAgentLogParser {
             }
         }
         String cat = parentType.equals("assistant") ? "assistant" : "user";
+        if (textBuilder.length() == 0) {
+            return ParsedLine.raw(lineNumber, "");
+        }
         return ParsedLine.message(
                 lineNumber, cat, capitalize(cat), textBuilder.toString(), rawDetails);
     }

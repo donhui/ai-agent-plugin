@@ -43,6 +43,7 @@ public class AiAgentLogParserTest {
         assertTrue("Should have system init", cats.contains("system"));
         assertTrue("Should have thinking", cats.contains("thinking"));
         assertTrue("Should have tool_call", cats.contains("tool_call"));
+        assertTrue("Should have tool_result", cats.contains("tool_result"));
         assertTrue("Should have assistant", cats.contains("assistant"));
     }
 
@@ -279,6 +280,24 @@ public class AiAgentLogParserTest {
         assertTrue(line.isToolCall());
         assertEquals("tu1", line.getToolCallIdOrGenerated());
         assertEquals("Bash", line.getToolName());
+    }
+
+    @Test
+    public void parseLine_handlesClaudeUserToolResult() {
+        String json =
+                "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"tu1\",\"content\":\"total 24\\nREADME.md\",\"is_error\":false}]}}";
+        AiAgentLogParser.ParsedLine line = AiAgentLogParser.parseLine(1, json);
+        assertEquals("tool_result", line.toEventView().getCategory());
+        assertEquals("total 24\nREADME.md", line.toEventView().getToolOutput());
+        assertEquals("tu1", line.getToolCallIdOrGenerated());
+    }
+
+    @Test
+    public void parseLine_skipsEmptyClaudeUserToolResultWrapper() {
+        String json =
+                "{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"tool_result\",\"tool_use_id\":\"tu1\",\"content\":[{\"type\":\"tool_reference\",\"tool_name\":\"Read\"}],\"is_error\":false}]}}";
+        AiAgentLogParser.ParsedLine line = AiAgentLogParser.parseLine(1, json);
+        assertTrue("Empty tool_result wrapper should be ignored", line.toEventView().isEmpty());
     }
 
     @Test
