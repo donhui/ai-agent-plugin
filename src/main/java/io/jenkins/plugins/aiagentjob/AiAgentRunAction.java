@@ -11,8 +11,6 @@ import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.StaplerRequest2;
-import org.kohsuke.stapler.StaplerResponse2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.GET;
 
@@ -228,7 +226,9 @@ public class AiAgentRunAction implements Action, RunAction2 {
 
     /** Progressive JSON endpoint consumed by the conversation UI for incremental event polling. */
     @GET
-    public void doProgressiveEvents(StaplerRequest2 request, StaplerResponse2 response)
+    public void doProgressiveEvents(
+            org.kohsuke.stapler.StaplerRequest2 request,
+            org.kohsuke.stapler.StaplerResponse2 response)
             throws IOException {
         checkReadPermission();
         long startLine = 0;
@@ -315,18 +315,25 @@ public class AiAgentRunAction implements Action, RunAction2 {
         response.getWriter().write(result.toString());
     }
 
-    /** Streams the raw JSONL capture for this build. */
+    /** Redirects action root to the build page so the header action never resolves to 404. */
     @GET
-    public void doRaw(StaplerRequest2 request, StaplerResponse2 response) throws IOException {
+    public Object doIndex() {
+        checkReadPermission();
+        return HttpResponses.redirectTo("../");
+    }
+
+    /** Returns raw JSONL log content for rendering in the raw view. */
+    public String getRawContent() {
         checkReadPermission();
         File raw = getRawLogFile();
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.setContentType("text/plain;charset=UTF-8");
         if (!raw.exists()) {
-            response.getWriter().println("No raw log file has been captured yet.");
-            return;
+            return "No raw log file has been captured yet.";
         }
-        Files.copy(raw.toPath(), response.getOutputStream());
+        try {
+            return Files.readString(raw.toPath(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            return "Failed to read raw log file: " + e;
+        }
     }
 
     private void checkReadPermission() {

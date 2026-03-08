@@ -13,14 +13,14 @@ public class StaplerEndpointSecurityTest {
     @Test
     public void descriptorEndpoints_usePostVerbs() throws Exception {
         assertTrue(
-                AiAgentProject.DescriptorImpl.class
+                AiAgentBuilder.DescriptorImpl.class
                         .getMethod(
                                 "doFillApiCredentialsIdItems",
                                 hudson.model.Item.class,
                                 String.class)
                         .isAnnotationPresent(POST.class));
         assertTrue(
-                AiAgentProject.DescriptorImpl.class
+                AiAgentBuilder.DescriptorImpl.class
                         .getMethod(
                                 "doCheckApprovalTimeoutSeconds",
                                 hudson.model.Item.class,
@@ -37,10 +37,7 @@ public class StaplerEndpointSecurityTest {
                                 StaplerRequest2.class,
                                 StaplerResponse2.class)
                         .isAnnotationPresent(GET.class));
-        assertTrue(
-                AiAgentRunAction.class
-                        .getMethod("doRaw", StaplerRequest2.class, StaplerResponse2.class)
-                        .isAnnotationPresent(GET.class));
+        assertTrue(AiAgentRunAction.class.getMethod("doIndex").isAnnotationPresent(GET.class));
         assertTrue(
                 AiAgentRunAction.class
                         .getMethod("doApprove", String.class)
@@ -49,5 +46,12 @@ public class StaplerEndpointSecurityTest {
                 AiAgentRunAction.class
                         .getMethod("doDeny", String.class, String.class)
                         .isAnnotationPresent(RequirePOST.class));
+    }
+
+    @Test
+    public void builderDescriptor_isApplicableToAnyProject() {
+        assertTrue(
+                new AiAgentBuilder.DescriptorImpl()
+                        .isApplicable(hudson.model.FreeStyleProject.class));
     }
 }

@@ -1,0 +1,9 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout">
+  <l:layout permission="${it.run.parent.EXTENDED_READ}" title="Raw json stream" type="one-column">
+    <l:main-panel>
+      <l:app-bar title="Raw json stream" />
+      <pre class="ai-raw-content">${it.rawContent}</pre>
+    </l:main-panel>
+  </l:layout>
+</j:jelly>

@@ -16,7 +16,7 @@
        data-deny-url="${it.urlName}/deny"
        data-raw-url="${it.urlName}/raw">
     <h3 class="ai-conv-title">
-      <img src="${resURL}/images/svgs/terminal.svg" width="20" height="20" class="ai-title-icon" alt="" />
+      <l:icon src="terminal" class="ai-title-icon" />
       AI Agent Conversation
     </h3>
 

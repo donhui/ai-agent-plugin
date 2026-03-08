@@ -1,0 +1,71 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+  <st:adjunct includes="io.jenkins.plugins.aiagentjob.AiAgentBuilder.config_codex_fields" />
+
+  <f:entry title="Agent Type" field="agentType">
+    <f:enum />
+  </f:entry>
+
+  <f:entry title="Prompt" field="prompt">
+    <f:textarea name="prompt" value="${instance.prompt}" />
+  </f:entry>
+
+  <f:entry title="Model (optional)" field="model">
+    <f:textbox name="model" value="${instance.model}" />
+  </f:entry>
+
+  <f:entry title="Working directory" field="workingDirectory" description="Relative to the job workspace. Leave empty to run in workspace root.">
+    <f:textbox name="workingDirectory" value="${instance.workingDirectory}" />
+  </f:entry>
+
+  <f:entry title="Enable YOLO mode" field="yoloMode">
+    <f:checkbox name="yoloMode" checked="${instance.yoloMode}" />
+  </f:entry>
+
+  <f:entry title="Require manual approvals" field="requireApprovals" description="When enabled, tool calls pause the build until approved from the run page.">
+    <f:checkbox name="requireApprovals" checked="${instance.requireApprovals}" />
+  </f:entry>
+
+  <f:entry title="Approval timeout (seconds)" field="approvalTimeoutSeconds">
+    <f:number name="approvalTimeoutSeconds" value="${instance.approvalTimeoutSeconds}" min="1" step="1" checkMethod="post" />
+  </f:entry>
+
+  <f:entry title="API key credential" field="apiCredentialsId">
+    <c:select field="apiCredentialsId" clazz="org.jenkinsci.plugins.plaincredentials.StringCredentials" />
+  </f:entry>
+
+  <f:entry title="Setup script" field="setupScript">
+    <f:textarea name="setupScript" value="${instance.setupScript}" />
+  </f:entry>
+
+  <div data-ai-agent-codex-only="true">
+    <f:optionalBlock inline="true" title="Use custom Codex config.toml" field="codexCustomConfigEnabled" checked="${instance.codexCustomConfigEnabled}">
+      <f:entry title="Custom Codex config.toml" field="codexCustomConfigToml">
+        <f:textarea name="codexCustomConfigToml" value="${instance.codexCustomConfigToml}" />
+      </f:entry>
+    </f:optionalBlock>
+  </div>
+
+  <f:advanced>
+    <f:entry title="API Key env var override" field="apiKeyEnvVar">
+      <f:textbox name="apiKeyEnvVar" value="${instance.apiKeyEnvVar}" />
+    </f:entry>
+
+    <f:entry title="Command override" field="commandOverride">
+      <f:expandableTextbox name="commandOverride" value="${instance.commandOverride}" />
+      <f:description>Optional full command to execute instead of built-in defaults. You can use AI_AGENT_PROMPT and AI_AGENT_MODEL env vars.</f:description>
+    </f:entry>
+
+    <f:entry title="Extra CLI args" field="extraArgs">
+      <f:textbox name="extraArgs" value="${instance.extraArgs}" />
+    </f:entry>
+
+    <f:entry title="Additional environment variables" field="environmentVariables">
+      <f:textarea name="environmentVariables" value="${instance.environmentVariables}" />
+    </f:entry>
+
+    <f:entry title="Fail build on agent non-zero exit" field="failOnAgentError">
+      <f:checkbox name="failOnAgentError" checked="${instance.failOnAgentError}" />
+    </f:entry>
+  </f:advanced>
+</j:jelly>

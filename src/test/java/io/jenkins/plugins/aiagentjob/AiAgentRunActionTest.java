@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
@@ -28,13 +29,24 @@ import java.util.stream.Collectors;
 public class AiAgentRunActionTest {
     @Rule public JenkinsRule jenkins = new JenkinsRule();
 
+    private FreeStyleProject newProject(
+            String name, java.util.function.Consumer<AiAgentBuilder> cfg) throws Exception {
+        FreeStyleProject project = jenkins.createFreeStyleProject(name);
+        AiAgentBuilder builder = new AiAgentBuilder();
+        cfg.accept(builder);
+        project.getBuildersList().add(builder);
+        project.save();
+        return project;
+    }
+
     @Test
     public void getOrCreate_returnsSameInstance() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "test-getorcreate");
-        project.setCommandOverride("echo '{\"type\":\"system\"}'");
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "test-getorcreate",
+                        b -> b.setCommandOverride("echo '{\"type\":\"system\"}'"));
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         AiAgentRunAction first = build.getAction(AiAgentRunAction.class);
@@ -47,12 +59,16 @@ public class AiAgentRunActionTest {
     public void actionProperties_afterCompletion() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "test-props");
-        project.setAgentType(AgentType.GEMINI_CLI);
-        project.setModel("gemini-2.5-pro");
-        project.setYoloMode(true);
-        project.setCommandOverride("echo '{\"type\":\"result\",\"result\":\"done\"}'");
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "test-props",
+                        b -> {
+                            b.setAgentType(AgentType.GEMINI_CLI);
+                            b.setModel("gemini-2.5-pro");
+                            b.setYoloMode(true);
+                            b.setCommandOverride(
+                                    "echo '{\"type\":\"result\",\"result\":\"done\"}'");
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         AiAgentRunAction action = build.getAction(AiAgentRunAction.class);
@@ -77,9 +93,10 @@ public class AiAgentRunActionTest {
     public void pendingApprovals_emptyAfterCompletion() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "test-approvals");
-        project.setCommandOverride("echo '{\"type\":\"system\"}'");
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "test-approvals",
+                        b -> b.setCommandOverride("echo '{\"type\":\"system\"}'"));
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         AiAgentRunAction action = build.getAction(AiAgentRunAction.class);
@@ -91,9 +108,9 @@ public class AiAgentRunActionTest {
     public void progressiveEvents_returnsJsonWithEvents() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "test-progressive");
-        project.setCommandOverride(buildEchoScript("claude-code-conversation.jsonl"));
-        project.save();
+        String script = buildEchoScript("claude-code-conversation.jsonl");
+        FreeStyleProject project =
+                newProject("test-progressive", b -> b.setCommandOverride(script));
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
 
@@ -121,9 +138,9 @@ public class AiAgentRunActionTest {
     public void progressiveEvents_incrementalFetch() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "test-incremental");
-        project.setCommandOverride(buildEchoScript("claude-code-conversation.jsonl"));
-        project.save();
+        String script = buildEchoScript("claude-code-conversation.jsonl");
+        FreeStyleProject project =
+                newProject("test-incremental", b -> b.setCommandOverride(script));
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
 
@@ -148,30 +165,34 @@ public class AiAgentRunActionTest {
     }
 
     @Test
-    public void rawEndpoint_returnsContent() throws Exception {
+    public void rawEndpoint_rendersHtmlWithContent() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "test-raw");
-        project.setCommandOverride("echo '{\"type\":\"system\",\"subtype\":\"init\"}'");
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "test-raw",
+                        b ->
+                                b.setCommandOverride(
+                                        "echo '{\"type\":\"system\",\"subtype\":\"init\"}'"));
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
 
         JenkinsRule.WebClient wc = jenkins.createWebClient();
         String url = build.getUrl() + "ai-agent/raw";
-        org.htmlunit.Page page = wc.goTo(url, "text/plain");
+        org.htmlunit.Page page = wc.goTo(url);
         String content = page.getWebResponse().getContentAsString();
-        assertTrue(
-                "Raw log should contain the echoed JSON", content.contains("\"type\":\"system\""));
+        assertTrue("Raw page should render preformatted content", content.contains("<pre"));
+        assertTrue("Raw log should contain the event type", content.contains("type"));
+        assertTrue("Raw log should contain the event category", content.contains("system"));
     }
 
     @Test
     public void events_emptyWhenLogContainsOnlyHiddenBookkeeping() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "test-no-log");
-        project.setCommandOverride("echo '{\"type\":\"result\"}'");
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "test-no-log", b -> b.setCommandOverride("echo '{\"type\":\"result\"}'"));
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         AiAgentRunAction action = build.getAction(AiAgentRunAction.class);

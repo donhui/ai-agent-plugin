@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
 import hudson.model.Result;
 
 import org.junit.Assume;
@@ -17,17 +18,30 @@ import java.io.File;
 public class AiAgentBuildExecutionTest {
     @Rule public JenkinsRule jenkins = new JenkinsRule();
 
+    private FreeStyleProject newProject(
+            String name, java.util.function.Consumer<AiAgentBuilder> cfg) throws Exception {
+        FreeStyleProject project = jenkins.createFreeStyleProject(name);
+        AiAgentBuilder builder = new AiAgentBuilder();
+        cfg.accept(builder);
+        project.getBuildersList().add(builder);
+        project.save();
+        return project;
+    }
+
     @Test
     public void runsAgentCommandAndCapturesConversation() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "ai-build-success");
-        project.setAgentType(AgentType.CLAUDE_CODE);
-        project.setPrompt("hello");
-        project.setCommandOverride(
-                "echo '{\"type\":\"assistant\",\"message\":\"hello from test\"}'");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "ai-build-success",
+                        b -> {
+                            b.setAgentType(AgentType.CLAUDE_CODE);
+                            b.setPrompt("hello");
+                            b.setCommandOverride(
+                                    "echo '{\"type\":\"assistant\",\"message\":\"hello from test\"}'");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         AiAgentRunAction action = build.getAction(AiAgentRunAction.class);
@@ -40,15 +54,17 @@ public class AiAgentBuildExecutionTest {
     public void setupScript_runsBeforeAgent() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
-                jenkins.createProject(AiAgentProject.class, "ai-build-setup-script");
-        project.setAgentType(AgentType.CLAUDE_CODE);
-        project.setPrompt("hello");
-        project.setSetupScript("export SETUP_DONE=yes");
-        project.setCommandOverride(
-                "echo \"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":\\\"setup=$SETUP_DONE\\\"}\"");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "ai-build-setup-script",
+                        b -> {
+                            b.setAgentType(AgentType.CLAUDE_CODE);
+                            b.setPrompt("hello");
+                            b.setSetupScript("export SETUP_DONE=yes");
+                            b.setCommandOverride(
+                                    "echo \"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":\\\"setup=$SETUP_DONE\\\"}\"");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         AiAgentRunAction action = build.getAction(AiAgentRunAction.class);
@@ -65,14 +81,17 @@ public class AiAgentBuildExecutionTest {
     public void setupScript_failureAbortsBuild() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "ai-build-setup-fail");
-        project.setAgentType(AgentType.CLAUDE_CODE);
-        project.setPrompt("hello");
-        project.setSetupScript("exit 42");
-        project.setCommandOverride(
-                "echo '{\"type\":\"assistant\",\"message\":\"should not run\"}'");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "ai-build-setup-fail",
+                        b -> {
+                            b.setAgentType(AgentType.CLAUDE_CODE);
+                            b.setPrompt("hello");
+                            b.setSetupScript("exit 42");
+                            b.setCommandOverride(
+                                    "echo '{\"type\":\"assistant\",\"message\":\"should not run\"}'");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
         jenkins.assertBuildStatus(Result.FAILURE, build);
@@ -84,13 +103,17 @@ public class AiAgentBuildExecutionTest {
     public void setupScript_emptyIsSkipped() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "ai-build-no-setup");
-        project.setAgentType(AgentType.CLAUDE_CODE);
-        project.setPrompt("hello");
-        project.setSetupScript("");
-        project.setCommandOverride("echo '{\"type\":\"assistant\",\"message\":\"direct run\"}'");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "ai-build-no-setup",
+                        b -> {
+                            b.setAgentType(AgentType.CLAUDE_CODE);
+                            b.setPrompt("hello");
+                            b.setSetupScript("");
+                            b.setCommandOverride(
+                                    "echo '{\"type\":\"assistant\",\"message\":\"direct run\"}'");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         String log = jenkins.getLog(build);
@@ -103,14 +126,18 @@ public class AiAgentBuildExecutionTest {
     public void setupScript_receivesEnvironmentVariables() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "ai-build-setup-env");
-        project.setAgentType(AgentType.CLAUDE_CODE);
-        project.setPrompt("hello");
-        project.setEnvironmentVariables("CUSTOM_VAR=secret_value_123");
-        project.setSetupScript("echo GOT_$CUSTOM_VAR");
-        project.setCommandOverride("echo '{\"type\":\"assistant\",\"message\":\"done\"}'");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "ai-build-setup-env",
+                        b -> {
+                            b.setAgentType(AgentType.CLAUDE_CODE);
+                            b.setPrompt("hello");
+                            b.setEnvironmentVariables("CUSTOM_VAR=secret_value_123");
+                            b.setSetupScript("echo GOT_$CUSTOM_VAR");
+                            b.setCommandOverride(
+                                    "echo '{\"type\":\"assistant\",\"message\":\"done\"}'");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         String log = jenkins.getLog(build);
@@ -121,15 +148,17 @@ public class AiAgentBuildExecutionTest {
     public void setupScript_exportsFlowToAgentCommand() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
-                jenkins.createProject(AiAgentProject.class, "ai-build-setup-export");
-        project.setAgentType(AgentType.CLAUDE_CODE);
-        project.setPrompt("hello");
-        project.setSetupScript("export MY_SETUP_VAR=from_setup_script");
-        project.setCommandOverride(
-                "echo \"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":\\\"val=$MY_SETUP_VAR\\\"}\"");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "ai-build-setup-export",
+                        b -> {
+                            b.setAgentType(AgentType.CLAUDE_CODE);
+                            b.setPrompt("hello");
+                            b.setSetupScript("export MY_SETUP_VAR=from_setup_script");
+                            b.setCommandOverride(
+                                    "echo \"{\\\"type\\\":\\\"assistant\\\",\\\"message\\\":\\\"val=$MY_SETUP_VAR\\\"}\"");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         String log = jenkins.getLog(build);
@@ -142,18 +171,21 @@ public class AiAgentBuildExecutionTest {
     public void codexCustomConfig_createsRunScopedCodexHome() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "ai-build-codex-cfg");
-        project.setAgentType(AgentType.CODEX);
-        project.setPrompt("hello");
-        project.setCodexCustomConfigEnabled(true);
-        project.setCodexCustomConfigToml("[mcp_servers.demo]\ncommand = \"npx\"");
-        project.setCommandOverride(
-                "cfg=\"$USERPROFILE/.codex/config.toml\"; "
-                        + "if test -f \"$cfg\"; then echo CODEX_CONFIG_FOUND; sed -n '1,200p' \"$cfg\"; "
-                        + "else echo CODEX_CONFIG_MISSING home=$HOME userprofile=$USERPROFILE; fi; "
-                        + "echo '{\"type\":\"assistant\",\"message\":\"done\"}'");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "ai-build-codex-cfg",
+                        b -> {
+                            b.setAgentType(AgentType.CODEX);
+                            b.setPrompt("hello");
+                            b.setCodexCustomConfigEnabled(true);
+                            b.setCodexCustomConfigToml("[mcp_servers.demo]\ncommand = \"npx\"");
+                            b.setCommandOverride(
+                                    "cfg=\"$USERPROFILE/.codex/config.toml\"; "
+                                            + "if test -f \"$cfg\"; then echo CODEX_CONFIG_FOUND; sed -n '1,200p' \"$cfg\"; "
+                                            + "else echo CODEX_CONFIG_MISSING home=$HOME userprofile=$USERPROFILE; fi; "
+                                            + "echo '{\"type\":\"assistant\",\"message\":\"done\"}'");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         AiAgentRunAction action = build.getAction(AiAgentRunAction.class);
@@ -173,18 +205,20 @@ public class AiAgentBuildExecutionTest {
     public void failsWhenApprovalTimesOut() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
-                jenkins.createProject(AiAgentProject.class, "ai-build-approval-timeout");
-        project.setAgentType(AgentType.CLAUDE_CODE);
-        project.setPrompt("needs approval");
-        project.setRequireApprovals(true);
-        project.setApprovalTimeoutSeconds(1);
-        project.setFailOnAgentError(true);
-        project.setCommandOverride(
-                "echo '{\"type\":\"tool_call\",\"tool_name\":\"bash\",\"tool_call_id\":\"call-1\",\"text\":\"ls\"}'; "
-                        + "sleep 2; "
-                        + "echo '{\"type\":\"assistant\",\"message\":\"done\"}'");
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "ai-build-approval-timeout",
+                        b -> {
+                            b.setAgentType(AgentType.CLAUDE_CODE);
+                            b.setPrompt("needs approval");
+                            b.setRequireApprovals(true);
+                            b.setApprovalTimeoutSeconds(1);
+                            b.setFailOnAgentError(true);
+                            b.setCommandOverride(
+                                    "echo '{\"type\":\"tool_call\",\"tool_name\":\"bash\",\"tool_call_id\":\"call-1\",\"text\":\"ls\"}'; "
+                                            + "sleep 2; "
+                                            + "echo '{\"type\":\"assistant\",\"message\":\"done\"}'");
+                        });
 
         FreeStyleBuild build = project.scheduleBuild2(0).get();
         jenkins.assertBuildStatus(Result.FAILURE, build);

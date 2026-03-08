@@ -2,8 +2,11 @@ package io.jenkins.plugins.aiagentjob;
 
 import hudson.Util;
 
+import jenkins.model.Jenkins;
+
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,101 +18,14 @@ import java.util.Map;
 final class AiAgentCommandFactory {
     private AiAgentCommandFactory() {}
 
-    static List<String> buildDefaultCommand(AiAgentProject project, String prompt) {
-        List<String> command = new ArrayList<>();
-        String model = trimToNull(project.getModel());
-
-        switch (project.getAgentType()) {
-            case CLAUDE_CODE:
-                command.add("npx");
-                command.add("-y");
-                command.add("@anthropic-ai/claude-code");
-                command.add("-p");
-                command.add(prompt);
-                command.add("--output-format=stream-json");
-                command.add("--verbose");
-                if (project.isYoloMode()) {
-                    command.add("--dangerously-skip-permissions");
-                } else if (project.isRequireApprovals()) {
-                    command.add("--permission-mode=default");
-                }
-                if (model != null) {
-                    command.add("--model");
-                    command.add(model);
-                }
-                break;
-
-            case CODEX:
-                command.add("codex");
-                command.add("exec");
-                command.add("--json");
-                command.add("--skip-git-repo-check");
-                if (project.isYoloMode()) {
-                    command.add("--dangerously-bypass-approvals-and-sandbox");
-                } else {
-                    command.add("--sandbox");
-                    command.add("workspace-write");
-                    command.add("--full-auto");
-                }
-                if (model != null) {
-                    command.add("--model");
-                    command.add(model);
-                }
-                command.add(prompt);
-                break;
-
-            case CURSOR_AGENT:
-                command.add("agent");
-                command.add("-p");
-                command.add("--output-format=stream-json");
-                command.add("--trust");
-                command.add("--approve-mcps");
-                if (project.isYoloMode()) {
-                    command.add("--yolo");
-                }
-                if (model != null) {
-                    command.add("--model");
-                    command.add(model);
-                }
-                command.add(prompt);
-                break;
-
-            case OPENCODE:
-                command.add("opencode");
-                command.add("run");
-                command.add("--format");
-                command.add("json");
-                if (model != null) {
-                    command.add("--model");
-                    command.add(model);
-                }
-                command.add(prompt);
-                break;
-
-            case GEMINI_CLI:
-                command.add("gemini");
-                command.add("-p");
-                command.add(prompt);
-                command.add("--output-format");
-                command.add("stream-json");
-                if (project.isYoloMode()) {
-                    command.add("--yolo");
-                } else if (project.isRequireApprovals()) {
-                    command.add("--approval-mode");
-                    command.add("default");
-                }
-                if (model != null) {
-                    command.add("-m");
-                    command.add(model);
-                }
-                break;
-
-            default:
-                throw new IllegalStateException(
-                        "Unsupported agent type: " + project.getAgentType());
+    static List<String> buildDefaultCommand(AiAgentConfiguration config, String prompt) {
+        AiAgentTypeHandler handler = getHandlersByType().get(config.getAgentType());
+        if (handler == null) {
+            throw new IllegalStateException("Unsupported agent type: " + config.getAgentType());
         }
+        List<String> command = new ArrayList<>(handler.buildDefaultCommand(config, prompt));
 
-        String extraArgs = trimToNull(project.getExtraArgs());
+        String extraArgs = trimToNull(config.getExtraArgs());
         if (extraArgs != null) {
             Collections.addAll(command, Util.tokenize(extraArgs));
         }
@@ -155,6 +71,28 @@ final class AiAgentCommandFactory {
             }
         }
         return sb.toString();
+    }
+
+    private static Map<AgentType, AiAgentTypeHandler> getHandlersByType() {
+        Map<AgentType, AiAgentTypeHandler> handlers = new HashMap<>();
+        try {
+            for (AiAgentTypeHandler handler :
+                    Jenkins.get().getExtensionList(AiAgentTypeHandler.class)) {
+                handlers.put(handler.getType(), handler);
+            }
+        } catch (IllegalStateException ignored) {
+            // Tests that call this factory outside a Jenkins runtime fall back to built-in
+            // handlers.
+        }
+        if (handlers.isEmpty()) {
+            handlers.put(AgentType.CLAUDE_CODE, new BuiltinAiAgentTypeHandlers.ClaudeCodeHandler());
+            handlers.put(AgentType.CODEX, new BuiltinAiAgentTypeHandlers.CodexHandler());
+            handlers.put(
+                    AgentType.CURSOR_AGENT, new BuiltinAiAgentTypeHandlers.CursorAgentHandler());
+            handlers.put(AgentType.OPENCODE, new BuiltinAiAgentTypeHandlers.OpenCodeHandler());
+            handlers.put(AgentType.GEMINI_CLI, new BuiltinAiAgentTypeHandlers.GeminiCliHandler());
+        }
+        return handlers;
     }
 
     private static String trimToNull(String value) {

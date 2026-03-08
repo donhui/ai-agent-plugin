@@ -4,14 +4,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Jenkins Plugin](https://img.shields.io/badge/Jenkins-2.528.3+-blue.svg)](https://www.jenkins.io/)
 
-A Jenkins plugin that adds a native **AI Agent Job** type for running autonomous coding agents
-(Claude Code, Codex CLI, Cursor Agent, OpenCode, Gemini CLI) as first-class Jenkins builds.
+A Jenkins plugin that adds a reusable **Run AI Agent** build step for running autonomous coding
+agents (Claude Code, Codex CLI, Cursor Agent, OpenCode, Gemini CLI) in Jenkins jobs and pipelines.
 
 Plugin ID (artifactId): `ai-agent-job`
 
 ## Features
 
-- **Native job type** — appears in the Jenkins "New Item" dialog alongside Freestyle and Pipeline jobs.
+- **Reusable build step** — add `Run AI Agent` to Freestyle jobs or Pipeline via `step([$class: 'AiAgentBuilder', ...])`.
 - **Multiple agent support** — Claude Code, Codex CLI, Cursor Agent, OpenCode, and Gemini CLI.
 - **Inline conversation view** — live-streaming conversation on the build page with structured display of assistant messages, tool calls with inputs/outputs, and thinking blocks.
 - **Markdown rendering** — assistant and result messages are rendered as formatted HTML.
@@ -45,8 +45,8 @@ Build page showing a Cursor Agent conversation with tool calls, markdown-rendere
 
 ## Quick Start
 
-1. Click **New Item**, enter a name, and select **AI Agent Job**.
-2. Configure:
+1. Create or open a Jenkins job (Freestyle or Pipeline).
+2. Add/configure the **Run AI Agent** build step:
    - **Agent Type** — select the coding agent to run.
    - **Prompt** — the task to send to the agent.
    - **Model** — optional model override (e.g., `claude-sonnet-4`).
@@ -163,9 +163,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full contribution guidelines.
 
 ```
 src/main/java/io/jenkins/plugins/aiagentjob/
-├── AiAgentProject.java             # Job type (extends Project)
-├── AiAgentBuild.java               # Build type binding
 ├── AiAgentBuilder.java             # Build step: agent execution
+├── AiAgentConfiguration.java       # Shared execution settings contract
+├── AiAgentTypeHandler.java         # Extension point for agent command construction
+├── BuiltinAiAgentTypeHandlers.java # Built-in handlers for supported agents
 ├── AiAgentRunAction.java           # Per-build action: conversation UI, streaming, approvals
 ├── AiAgentLogParser.java           # JSONL log parser for all agent formats
 ├── AgentUsageStats.java            # Token/cost/duration stats normalization

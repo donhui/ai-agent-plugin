@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
 
 import org.junit.Assume;
 import org.junit.Rule;
@@ -44,13 +45,15 @@ public class AiAgentRecordedConversationTest {
         }
     }
 
-    private AiAgentProject buildProjectWithFixture(
+    private FreeStyleProject buildProjectWithFixture(
             String jobName, AgentType agentType, String fixtureName) throws Exception {
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, jobName);
-        project.setAgentType(agentType);
-        project.setPrompt("test prompt");
-        project.setCommandOverride(buildEchoScript(fixtureName));
-        project.setFailOnAgentError(true);
+        FreeStyleProject project = jenkins.createFreeStyleProject(jobName);
+        AiAgentBuilder builder = new AiAgentBuilder();
+        builder.setAgentType(agentType);
+        builder.setPrompt("test prompt");
+        builder.setCommandOverride(buildEchoScript(fixtureName));
+        builder.setFailOnAgentError(true);
+        project.getBuildersList().add(builder);
         project.save();
         return project;
     }
@@ -59,7 +62,7 @@ public class AiAgentRecordedConversationTest {
     public void claudeCodeRecording_producesCorrectEvents() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
+        FreeStyleProject project =
                 buildProjectWithFixture(
                         "claude-recording",
                         AgentType.CLAUDE_CODE,
@@ -89,7 +92,7 @@ public class AiAgentRecordedConversationTest {
     public void codexRecording_producesCorrectEvents() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
+        FreeStyleProject project =
                 buildProjectWithFixture(
                         "codex-recording", AgentType.CODEX, "codex-conversation.jsonl");
 
@@ -115,7 +118,7 @@ public class AiAgentRecordedConversationTest {
     public void cursorAgentRecording_producesCorrectEvents() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
+        FreeStyleProject project =
                 buildProjectWithFixture(
                         "cursor-recording",
                         AgentType.CURSOR_AGENT,
@@ -141,7 +144,7 @@ public class AiAgentRecordedConversationTest {
     public void geminiCliRecording_producesCorrectEvents() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
+        FreeStyleProject project =
                 buildProjectWithFixture(
                         "gemini-recording", AgentType.GEMINI_CLI, "gemini-cli-conversation.jsonl");
 
@@ -169,7 +172,7 @@ public class AiAgentRecordedConversationTest {
     public void openCodeRecording_showsCompletedToolOutputs() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
+        FreeStyleProject project =
                 buildProjectWithFixture(
                         "opencode-recording", AgentType.OPENCODE, "opencode-conversation.jsonl");
 
@@ -195,7 +198,7 @@ public class AiAgentRecordedConversationTest {
     public void errorRecording_buildSucceedsWithExitZero() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
+        FreeStyleProject project =
                 buildProjectWithFixture(
                         "error-recording", AgentType.CLAUDE_CODE, "error-conversation.jsonl");
 
@@ -209,7 +212,7 @@ public class AiAgentRecordedConversationTest {
     public void streamingRecording_handlesStreamEvents() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
+        FreeStyleProject project =
                 buildProjectWithFixture(
                         "streaming-recording",
                         AgentType.CLAUDE_CODE,
@@ -232,10 +235,10 @@ public class AiAgentRecordedConversationTest {
     public void actionMetadata_isPopulatedCorrectly() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project =
+        FreeStyleProject project =
                 buildProjectWithFixture(
                         "metadata-test", AgentType.CLAUDE_CODE, "claude-code-conversation.jsonl");
-        project.setModel("claude-opus-4");
+        ((AiAgentBuilder) project.getBuildersList().get(0)).setModel("claude-opus-4");
         project.save();
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);

@@ -1,6 +1,6 @@
 (function () {
     function updateCodexFields() {
-        var agentType = document.getElementById("ai-agent-job-agent-type");
+        var agentType = document.querySelector("select[name='agentType']");
         if (!agentType) {
             return;
         }
@@ -13,7 +13,7 @@
     }
 
     function bindCodexFieldToggle() {
-        var agentType = document.getElementById("ai-agent-job-agent-type");
+        var agentType = document.querySelector("select[name='agentType']");
         if (!agentType || agentType.dataset.aiAgentCodexToggleBound === "true") {
             updateCodexFields();
             return;

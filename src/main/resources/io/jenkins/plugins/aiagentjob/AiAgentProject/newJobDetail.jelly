@@ -1,5 +1,0 @@
-<?jelly escape-by-default='true'?>
-<div>
-  Run AI coding agents (Claude Code, Codex CLI, Cursor Agent, OpenCode, Gemini CLI) as Jenkins jobs.
-  Includes SCM checkout, live conversation streaming, tool-call approval gates, and post-build steps.
-</div>

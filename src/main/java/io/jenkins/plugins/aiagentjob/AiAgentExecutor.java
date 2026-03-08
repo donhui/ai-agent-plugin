@@ -10,8 +10,8 @@ import hudson.Proc;
 import hudson.Util;
 import hudson.console.LineTransformationOutputStream;
 import hudson.model.AbstractBuild;
-import hudson.model.BuildListener;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
 
@@ -39,24 +39,22 @@ final class AiAgentExecutor {
     private AiAgentExecutor() {}
 
     static int execute(
-            AbstractBuild<?, ?> build,
+            Run<?, ?> run,
+            FilePath workspace,
             Launcher launcher,
-            BuildListener listener,
-            AiAgentProject project,
+            TaskListener listener,
+            AiAgentConfiguration config,
             AiAgentRunAction action)
             throws IOException, InterruptedException {
-        FilePath workspace = build.getWorkspace();
-        if (workspace == null) {
-            throw new IOException("Workspace is not available for this build.");
+        EnvVars env = run.getEnvironment(listener);
+        if (run instanceof AbstractBuild<?, ?> abstractBuild) {
+            env.putAll(abstractBuild.getBuildVariables());
         }
 
-        EnvVars env = build.getEnvironment(listener);
-        env.putAll(build.getBuildVariables());
-
-        String prompt = Util.replaceMacro(Util.fixNull(project.getPrompt()), env);
-        String model = Util.replaceMacro(Util.fixNull(project.getModel()), env);
-        String workDirValue = Util.replaceMacro(Util.fixNull(project.getWorkingDirectory()), env);
-        String commandOverride = Util.replaceMacro(Util.fixNull(project.getCommandOverride()), env);
+        String prompt = Util.replaceMacro(Util.fixNull(config.getPrompt()), env);
+        String model = Util.replaceMacro(Util.fixNull(config.getModel()), env);
+        String workDirValue = Util.replaceMacro(Util.fixNull(config.getWorkingDirectory()), env);
+        String commandOverride = Util.replaceMacro(Util.fixNull(config.getCommandOverride()), env);
         commandOverride = commandOverride.trim();
 
         FilePath runDirectory = resolveRunDirectory(workspace, workDirValue);
@@ -65,19 +63,19 @@ final class AiAgentExecutor {
         Map<String, String> extraEnv =
                 new LinkedHashMap<>(
                         AiAgentCommandFactory.parseEnvironmentVariables(
-                                project.getEnvironmentVariables()));
+                                config.getEnvironmentVariables()));
 
         // Inject API key from Jenkins Credentials if configured
-        String credentialsId = Util.fixEmptyAndTrim(project.getApiCredentialsId());
+        String credentialsId = Util.fixEmptyAndTrim(config.getApiCredentialsId());
         if (credentialsId != null) {
             StringCredentials cred =
                     CredentialsProvider.findCredentialById(
                             credentialsId,
                             StringCredentials.class,
-                            (Run<?, ?>) build,
+                            run,
                             Collections.<DomainRequirement>emptyList());
             if (cred != null) {
-                String envVarName = project.getEffectiveApiKeyEnvVar();
+                String envVarName = config.getEffectiveApiKeyEnvVar();
                 extraEnv.put(envVarName, cred.getSecret().getPlainText());
                 listener.getLogger()
                         .println(
@@ -95,12 +93,12 @@ final class AiAgentExecutor {
             }
         }
 
-        if (project.getAgentType() == AgentType.OPENCODE) {
-            if (project.isYoloMode()) {
+        if (config.getAgentType() == AgentType.OPENCODE) {
+            if (config.isYoloMode()) {
                 extraEnv.put(
                         "OPENCODE_PERMISSION",
                         "{\"edit\":\"allow\",\"bash\":\"allow\",\"webfetch\":\"allow\",\"external_directory\":\"allow\",\"doom_loop\":\"allow\"}");
-            } else if (project.isRequireApprovals()) {
+            } else if (config.isRequireApprovals()) {
                 extraEnv.put(
                         "OPENCODE_PERMISSION",
                         "{\"edit\":\"ask\",\"bash\":\"ask\",\"webfetch\":\"ask\",\"external_directory\":\"ask\",\"doom_loop\":\"ask\"}");
@@ -108,14 +106,14 @@ final class AiAgentExecutor {
         }
         extraEnv.put("AI_AGENT_PROMPT", prompt);
         extraEnv.put("AI_AGENT_MODEL", model);
-        extraEnv.put("AI_AGENT_JOB", build.getProject().getFullName());
-        extraEnv.put("AI_AGENT_BUILD_NUMBER", String.valueOf(build.getNumber()));
+        extraEnv.put("AI_AGENT_JOB", run.getParent().getFullName());
+        extraEnv.put("AI_AGENT_BUILD_NUMBER", String.valueOf(run.getNumber()));
 
-        String setupScript = Util.replaceMacro(Util.fixNull(project.getSetupScript()), env).trim();
+        String setupScript = Util.replaceMacro(Util.fixNull(config.getSetupScript()), env).trim();
         FilePath tempCodexHome = null;
 
-        if (project.getAgentType() == AgentType.CODEX && project.isCodexCustomConfigEnabled()) {
-            tempCodexHome = prepareCodexHome(workspace, project.getCodexCustomConfigToml());
+        if (config.getAgentType() == AgentType.CODEX && config.isCodexCustomConfigEnabled()) {
+            tempCodexHome = prepareCodexHome(workspace, config.getCodexCustomConfigToml());
             String codexHome = tempCodexHome.getRemote();
             extraEnv.put("HOME", codexHome);
             extraEnv.put("USERPROFILE", codexHome);
@@ -128,7 +126,7 @@ final class AiAgentExecutor {
         if (!commandOverride.isEmpty()) {
             agentCommand = List.of(commandOverride);
         } else {
-            agentCommand = AiAgentCommandFactory.buildDefaultCommand(project, prompt);
+            agentCommand = AiAgentCommandFactory.buildDefaultCommand(config, prompt);
         }
 
         List<String> command;
@@ -157,25 +155,25 @@ final class AiAgentExecutor {
                         ? AiAgentCommandFactory.commandAsString(agentCommand)
                         : commandOverride;
         action.markStarted(
-                project.getAgentType(),
+                config.getAgentType(),
                 model,
                 commandLine,
-                project.isYoloMode(),
-                project.isRequireApprovals());
+                config.isYoloMode(),
+                config.isRequireApprovals());
 
         File rawLogFile = action.getRawLogFile();
         Files.deleteIfExists(rawLogFile.toPath());
 
-        ExecutionRegistry.LiveExecution liveExecution = ExecutionRegistry.register(build);
+        ExecutionRegistry.LiveExecution liveExecution = ExecutionRegistry.register(run);
         Duration approvalTimeout =
-                Duration.ofSeconds(Math.max(1, project.getApprovalTimeoutSeconds()));
+                Duration.ofSeconds(Math.max(1, config.getApprovalTimeoutSeconds()));
 
         AgentOutputHandler outputHandler =
                 new AgentOutputHandler(
                         listener.getLogger(),
                         rawLogFile,
                         liveExecution,
-                        project.isRequireApprovals() && !project.isYoloMode(),
+                        config.isRequireApprovals() && !config.isYoloMode(),
                         approvalTimeout);
         OutputStream stdoutSink = new NonClosingSynchronizedOutputStream(outputHandler);
         OutputStream stderrSink = new NonClosingSynchronizedOutputStream(outputHandler);
@@ -195,7 +193,7 @@ final class AiAgentExecutor {
             exitCode = proc.join();
         } finally {
             outputHandler.close();
-            ExecutionRegistry.unregister(build);
+            ExecutionRegistry.unregister(run);
             if (tempSetupScript != null) {
                 try {
                     tempSetupScript.delete();

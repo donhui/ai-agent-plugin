@@ -11,14 +11,8 @@ import java.util.Map;
 
 public class AiAgentCommandFactoryTest {
 
-    private static AiAgentProject createProject(AgentType type) {
-        AiAgentProject project =
-                new AiAgentProject(null, "test-job") {
-                    @Override
-                    public void save() {
-                        // no-op for testing
-                    }
-                };
+    private static AiAgentBuilder createProject(AgentType type) {
+        AiAgentBuilder project = new AiAgentBuilder();
         project.setAgentType(type);
         return project;
     }
@@ -27,7 +21,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void claudeCode_basicCommand() {
-        AiAgentProject project = createProject(AgentType.CLAUDE_CODE);
+        AiAgentBuilder project = createProject(AgentType.CLAUDE_CODE);
         project.setPrompt("Hello world");
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "Hello world");
@@ -46,7 +40,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void claudeCode_yoloMode() {
-        AiAgentProject project = createProject(AgentType.CLAUDE_CODE);
+        AiAgentBuilder project = createProject(AgentType.CLAUDE_CODE);
         project.setYoloMode(true);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test prompt");
@@ -61,7 +55,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void claudeCode_approvalsMode() {
-        AiAgentProject project = createProject(AgentType.CLAUDE_CODE);
+        AiAgentBuilder project = createProject(AgentType.CLAUDE_CODE);
         project.setRequireApprovals(true);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test prompt");
@@ -75,7 +69,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void claudeCode_withModel() {
-        AiAgentProject project = createProject(AgentType.CLAUDE_CODE);
+        AiAgentBuilder project = createProject(AgentType.CLAUDE_CODE);
         project.setModel("claude-opus-4");
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -89,7 +83,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void codex_basicCommand() {
-        AiAgentProject project = createProject(AgentType.CODEX);
+        AiAgentBuilder project = createProject(AgentType.CODEX);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "fix the bug");
 
@@ -104,7 +98,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void codex_yoloMode() {
-        AiAgentProject project = createProject(AgentType.CODEX);
+        AiAgentBuilder project = createProject(AgentType.CODEX);
         project.setYoloMode(true);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -118,7 +112,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void codex_defaultMode() {
-        AiAgentProject project = createProject(AgentType.CODEX);
+        AiAgentBuilder project = createProject(AgentType.CODEX);
         project.setYoloMode(false);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -133,7 +127,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void codex_withModel() {
-        AiAgentProject project = createProject(AgentType.CODEX);
+        AiAgentBuilder project = createProject(AgentType.CODEX);
         project.setModel("o3");
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -145,7 +139,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void codex_promptIsLastArgument() {
-        AiAgentProject project = createProject(AgentType.CODEX);
+        AiAgentBuilder project = createProject(AgentType.CODEX);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "refactor this");
 
@@ -156,7 +150,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void cursorAgent_basicCommand() {
-        AiAgentProject project = createProject(AgentType.CURSOR_AGENT);
+        AiAgentBuilder project = createProject(AgentType.CURSOR_AGENT);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "analyze code");
 
@@ -172,7 +166,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void cursorAgent_yoloMode() {
-        AiAgentProject project = createProject(AgentType.CURSOR_AGENT);
+        AiAgentBuilder project = createProject(AgentType.CURSOR_AGENT);
         project.setYoloMode(true);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -182,7 +176,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void cursorAgent_withModel() {
-        AiAgentProject project = createProject(AgentType.CURSOR_AGENT);
+        AiAgentBuilder project = createProject(AgentType.CURSOR_AGENT);
         project.setModel("sonnet-4-thinking");
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -196,7 +190,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void openCode_basicCommand() {
-        AiAgentProject project = createProject(AgentType.OPENCODE);
+        AiAgentBuilder project = createProject(AgentType.OPENCODE);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "explain this");
 
@@ -209,7 +203,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void openCode_withModel() {
-        AiAgentProject project = createProject(AgentType.OPENCODE);
+        AiAgentBuilder project = createProject(AgentType.OPENCODE);
         project.setModel("anthropic/claude-sonnet-4");
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -223,7 +217,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void geminiCli_basicCommand() {
-        AiAgentProject project = createProject(AgentType.GEMINI_CLI);
+        AiAgentBuilder project = createProject(AgentType.GEMINI_CLI);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "summarize project");
 
@@ -236,7 +230,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void geminiCli_yoloMode() {
-        AiAgentProject project = createProject(AgentType.GEMINI_CLI);
+        AiAgentBuilder project = createProject(AgentType.GEMINI_CLI);
         project.setYoloMode(true);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -246,7 +240,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void geminiCli_withApprovals() {
-        AiAgentProject project = createProject(AgentType.GEMINI_CLI);
+        AiAgentBuilder project = createProject(AgentType.GEMINI_CLI);
         project.setRequireApprovals(true);
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -257,7 +251,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void geminiCli_withModel() {
-        AiAgentProject project = createProject(AgentType.GEMINI_CLI);
+        AiAgentBuilder project = createProject(AgentType.GEMINI_CLI);
         project.setModel("gemini-2.5-flash");
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -271,7 +265,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void extraArgs_appendedToCommand() {
-        AiAgentProject project = createProject(AgentType.CLAUDE_CODE);
+        AiAgentBuilder project = createProject(AgentType.CLAUDE_CODE);
         project.setExtraArgs("--max-budget-usd 5 --effort high");
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -284,7 +278,7 @@ public class AiAgentCommandFactoryTest {
 
     @Test
     public void extraArgs_emptyDoesNotAddTokens() {
-        AiAgentProject project = createProject(AgentType.CLAUDE_CODE);
+        AiAgentBuilder project = createProject(AgentType.CLAUDE_CODE);
         project.setExtraArgs("   ");
 
         List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
@@ -364,7 +358,7 @@ public class AiAgentCommandFactoryTest {
     @Test
     public void allAgents_noModelByDefault() {
         for (AgentType type : AgentType.values()) {
-            AiAgentProject project = createProject(type);
+            AiAgentBuilder project = createProject(type);
             List<String> cmd = AiAgentCommandFactory.buildDefaultCommand(project, "test");
             assertFalse(
                     "Agent " + type + " should not add --model when empty",
@@ -375,7 +369,7 @@ public class AiAgentCommandFactoryTest {
     @Test
     public void allAgents_havePromptInCommand() {
         for (AgentType type : AgentType.values()) {
-            AiAgentProject project = createProject(type);
+            AiAgentBuilder project = createProject(type);
             List<String> cmd =
                     AiAgentCommandFactory.buildDefaultCommand(
                             project, "unique-prompt-" + type.name());

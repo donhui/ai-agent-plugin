@@ -10,6 +10,7 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.domains.Domain;
 
 import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
 import hudson.util.Secret;
 
 import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
@@ -24,6 +25,16 @@ import java.nio.file.Files;
 
 public class AiAgentCredentialInjectionTest {
     @Rule public JenkinsRule jenkins = new JenkinsRule();
+
+    private FreeStyleProject newProject(
+            String name, java.util.function.Consumer<AiAgentBuilder> cfg) throws Exception {
+        FreeStyleProject project = jenkins.createFreeStyleProject(name);
+        AiAgentBuilder builder = new AiAgentBuilder();
+        cfg.accept(builder);
+        project.getBuildersList().add(builder);
+        project.save();
+        return project;
+    }
 
     @Test
     public void injectsApiKeyFromCredential() throws Exception {
@@ -42,17 +53,19 @@ public class AiAgentCredentialInjectionTest {
                 .addCredentials(Domain.global(), cred);
 
         // Create project that echoes back the env var to prove injection
-        AiAgentProject project =
-                jenkins.createProject(AiAgentProject.class, "credential-inject-test");
-        project.setAgentType(AgentType.CLAUDE_CODE);
-        project.setPrompt("test");
-        project.setApiCredentialsId("test-api-key");
-        // Command override that outputs the env var value as JSON so it appears in the
-        // raw log
-        project.setCommandOverride(
-                "echo \"{\\\"type\\\":\\\"system\\\",\\\"key_set\\\":\\\"$(test -n \\\"$ANTHROPIC_API_KEY\\\" && echo yes || echo no)\\\"}\"");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "credential-inject-test",
+                        b -> {
+                            b.setAgentType(AgentType.CLAUDE_CODE);
+                            b.setPrompt("test");
+                            b.setApiCredentialsId("test-api-key");
+                            // Command override that outputs the env var value as JSON so it appears
+                            // in the raw log
+                            b.setCommandOverride(
+                                    "echo \"{\\\"type\\\":\\\"system\\\",\\\"key_set\\\":\\\"$(test -n \\\"$ANTHROPIC_API_KEY\\\" && echo yes || echo no)\\\"}\"");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         AiAgentRunAction action = build.getAction(AiAgentRunAction.class);
@@ -84,15 +97,18 @@ public class AiAgentCredentialInjectionTest {
                 .next()
                 .addCredentials(Domain.global(), cred);
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "custom-envvar-test");
-        project.setAgentType(AgentType.OPENCODE);
-        project.setPrompt("test");
-        project.setApiCredentialsId("custom-key");
-        project.setApiKeyEnvVar("ANTHROPIC_API_KEY");
-        project.setCommandOverride(
-                "echo \"{\\\"type\\\":\\\"system\\\",\\\"key_set\\\":\\\"$(test -n \\\"$ANTHROPIC_API_KEY\\\" && echo yes || echo no)\\\"}\"");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "custom-envvar-test",
+                        b -> {
+                            b.setAgentType(AgentType.OPENCODE);
+                            b.setPrompt("test");
+                            b.setApiCredentialsId("custom-key");
+                            b.setApiKeyEnvVar("ANTHROPIC_API_KEY");
+                            b.setCommandOverride(
+                                    "echo \"{\\\"type\\\":\\\"system\\\",\\\"key_set\\\":\\\"$(test -n \\\"$ANTHROPIC_API_KEY\\\" && echo yes || echo no)\\\"}\"");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         String buildLog = build.getLog();
@@ -105,13 +121,16 @@ public class AiAgentCredentialInjectionTest {
     public void warnsWhenCredentialNotFound() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "missing-cred-test");
-        project.setAgentType(AgentType.GEMINI_CLI);
-        project.setPrompt("test");
-        project.setApiCredentialsId("nonexistent-credential-id");
-        project.setCommandOverride("echo '{\"type\":\"system\"}'");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "missing-cred-test",
+                        b -> {
+                            b.setAgentType(AgentType.GEMINI_CLI);
+                            b.setPrompt("test");
+                            b.setApiCredentialsId("nonexistent-credential-id");
+                            b.setCommandOverride("echo '{\"type\":\"system\"}'");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         String buildLog = build.getLog();
@@ -124,13 +143,16 @@ public class AiAgentCredentialInjectionTest {
     public void noCredentialNoInjection() throws Exception {
         Assume.assumeTrue(File.pathSeparatorChar == ':');
 
-        AiAgentProject project = jenkins.createProject(AiAgentProject.class, "no-cred-test");
-        project.setAgentType(AgentType.CLAUDE_CODE);
-        project.setPrompt("test");
-        // No credential configured
-        project.setCommandOverride("echo '{\"type\":\"system\"}'");
-        project.setFailOnAgentError(true);
-        project.save();
+        FreeStyleProject project =
+                newProject(
+                        "no-cred-test",
+                        b -> {
+                            b.setAgentType(AgentType.CLAUDE_CODE);
+                            b.setPrompt("test");
+                            // No credential configured
+                            b.setCommandOverride("echo '{\"type\":\"system\"}'");
+                            b.setFailOnAgentError(true);
+                        });
 
         FreeStyleBuild build = jenkins.buildAndAssertSuccess(project);
         String buildLog = build.getLog();
@@ -139,11 +161,7 @@ public class AiAgentCredentialInjectionTest {
 
     @Test
     public void effectiveApiKeyEnvVar_defaultsToAgentType() {
-        AiAgentProject project =
-                new AiAgentProject(null, "test") {
-                    @Override
-                    public void save() {}
-                };
+        AiAgentBuilder project = new AiAgentBuilder();
         project.setAgentType(AgentType.CLAUDE_CODE);
         project.setApiKeyEnvVar("");
         assertEquals("ANTHROPIC_API_KEY", project.getEffectiveApiKeyEnvVar());
@@ -154,11 +172,7 @@ public class AiAgentCredentialInjectionTest {
 
     @Test
     public void effectiveApiKeyEnvVar_respectsCustomOverride() {
-        AiAgentProject project =
-                new AiAgentProject(null, "test") {
-                    @Override
-                    public void save() {}
-                };
+        AiAgentBuilder project = new AiAgentBuilder();
         project.setAgentType(AgentType.OPENCODE);
         project.setApiKeyEnvVar("ANTHROPIC_API_KEY");
         assertEquals("ANTHROPIC_API_KEY", project.getEffectiveApiKeyEnvVar());
