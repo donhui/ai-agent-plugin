@@ -64,7 +64,28 @@ Build page showing a Cursor Agent conversation with tool calls, markdown-rendere
 
 The step symbol is `aiAgent`.
 
-Descriptor-based syntax (extensible, supports third-party agent plugins):
+Descriptor-based syntax (extensible, supports third-party agent plugins).
+
+Minimal invocation (uses default Claude Code handler):
+
+```groovy
+aiAgent(
+  prompt: 'Summarize this repository and propose 3 cleanup PRs'
+)
+```
+
+Gemini with manual tool-call approvals:
+
+```groovy
+aiAgent(
+  agent: [$class: 'GeminiCliAgentHandler'],
+  prompt: 'Refactor the parser and add tests',
+  requireApprovals: true,
+  approvalTimeoutSeconds: 300
+)
+```
+
+Codex with job-scoped `config.toml`:
 
 ```groovy
 aiAgent(
