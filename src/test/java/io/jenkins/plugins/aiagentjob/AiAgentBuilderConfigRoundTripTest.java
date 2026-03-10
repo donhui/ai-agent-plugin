@@ -36,8 +36,6 @@ public class AiAgentBuilderConfigRoundTripTest {
         builder.setExtraArgs("--foo bar");
         builder.setEnvironmentVariables("FOO=bar\nHELLO=world");
         builder.setSetupScript("export PATH=$HOME/.local/bin:$PATH\nnpm install");
-        builder.setCodexCustomConfigEnabled(true);
-        builder.setCodexCustomConfigToml("[mcp_servers.demo]\ncommand = \"npx\"");
         builder.setFailOnAgentError(false);
         project.getBuildersList().add(builder);
         project.save();
@@ -58,18 +56,16 @@ public class AiAgentBuilderConfigRoundTripTest {
         assertEquals("--foo bar", reloaded.getExtraArgs());
         assertEquals("FOO=bar\nHELLO=world", reloaded.getEnvironmentVariables());
         assertEquals("export PATH=$HOME/.local/bin:$PATH\nnpm install", reloaded.getSetupScript());
-        assertTrue(reloaded.isCodexCustomConfigEnabled());
-        assertEquals("[mcp_servers.demo]\ncommand = \"npx\"", reloaded.getCodexCustomConfigToml());
         assertFalse(reloaded.isFailOnAgentError());
     }
 
     @Test
-    public void configJelly_usesExternalResourcesForCodexToggle() throws Exception {
+    public void configJelly_usesDescriptorSelectorWithoutInlineScripts() throws Exception {
         String jelly = readResource("/io/jenkins/plugins/aiagentjob/AiAgentBuilder/config.jelly");
         assertTrue(
-                "config.jelly should load adjunct resources",
+                "config.jelly should use descriptor selector",
                 jelly.contains(
-                        "<st:adjunct includes=\"io.jenkins.plugins.aiagentjob.AiAgentBuilder.config_codex_fields\""));
+                        "<f:dropdownDescriptorSelector title=\"Agent Type\" field=\"agent\" descriptors=\"${descriptor.agentDescriptors}\" />"));
         assertFalse("config.jelly should not contain inline style tags", jelly.contains("<style"));
         assertFalse(
                 "config.jelly should not contain inline script tags", jelly.contains("<script"));
@@ -81,12 +77,12 @@ public class AiAgentBuilderConfigRoundTripTest {
     }
 
     @Test
-    public void configCodexFieldResources_exist() {
+    public void codexHandlerConfigJelly_exists() {
         assertNotNull(
-                "codex config toggle resource should exist",
+                "codex handler config resource should exist",
                 getClass()
                         .getResource(
-                                "/io/jenkins/plugins/aiagentjob/AiAgentBuilder/config_codex_fields.js"));
+                                "/io/jenkins/plugins/aiagentjob/CodexAgentHandler/config.jelly"));
     }
 
     private String readResource(String path) throws IOException {

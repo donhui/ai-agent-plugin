@@ -1,10 +1,6 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
-  <st:adjunct includes="io.jenkins.plugins.aiagentjob.AiAgentBuilder.config_codex_fields" />
-
-  <f:entry title="Agent Type" field="agentType">
-    <f:enum />
-  </f:entry>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+  <f:dropdownDescriptorSelector title="Agent Type" field="agent" descriptors="${descriptor.agentDescriptors}" />
 
   <f:entry title="Prompt" field="prompt">
     <f:textarea />
@@ -35,14 +31,6 @@
   <f:entry title="Setup script" field="setupScript">
     <f:textarea />
   </f:entry>
-
-  <div data-ai-agent-codex-only="true">
-    <f:optionalBlock inline="true" title="Use custom Codex config.toml" field="codexCustomConfigEnabled">
-      <f:entry title="Custom Codex config.toml" field="codexCustomConfigToml">
-        <f:textarea />
-      </f:entry>
-    </f:optionalBlock>
-  </div>
 
   <f:advanced>
     <f:entry title="API Key env var override" field="apiKeyEnvVar">

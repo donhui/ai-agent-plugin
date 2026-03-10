@@ -2,7 +2,7 @@ package io.jenkins.plugins.aiagentjob;
 
 /** Shared execution settings used by the AI agent builder step and command execution flow. */
 interface AiAgentConfiguration {
-    AgentType getAgentType();
+    AiAgentTypeHandler getAgent();
 
     String getModel();
 
@@ -25,10 +25,6 @@ interface AiAgentConfiguration {
     boolean isFailOnAgentError();
 
     String getSetupScript();
-
-    boolean isCodexCustomConfigEnabled();
-
-    String getCodexCustomConfigToml();
 
     String getApiCredentialsId();
 

@@ -76,7 +76,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
     }
 
     public synchronized int markStarted(
-            AgentType agentType,
+            String agentTypeDisplayName,
             String model,
             String commandLine,
             boolean yoloMode,
@@ -86,7 +86,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
         InvocationRecord invocation =
                 new InvocationRecord(
                         id,
-                        agentType.getDisplayName(),
+                        agentTypeDisplayName == null ? "" : agentTypeDisplayName,
                         model == null ? "" : model,
                         commandLine == null ? "" : commandLine,
                         yoloMode,

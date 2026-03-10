@@ -11,6 +11,8 @@ import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Descriptor;
+import hudson.model.DescriptorVisibilityFilter;
 import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
@@ -34,9 +36,11 @@ import org.kohsuke.stapler.verb.POST;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 /** Build step that runs AI coding agents and can be used from freestyle and pipeline jobs. */
 public class AiAgentBuilder extends Builder implements SimpleBuildStep, AiAgentConfiguration {
+    private AiAgentTypeHandler agent = new ClaudeCodeAgentHandler();
     private AgentType agentType = AgentType.CLAUDE_CODE;
     private String model = "";
     private String prompt = "";
@@ -49,8 +53,8 @@ public class AiAgentBuilder extends Builder implements SimpleBuildStep, AiAgentC
     private String environmentVariables = "";
     private boolean failOnAgentError = true;
     private String setupScript = "";
-    private boolean codexCustomConfigEnabled;
-    private String codexCustomConfigToml = "";
+    @Deprecated private boolean codexCustomConfigEnabled;
+    @Deprecated private String codexCustomConfigToml = "";
     private String apiCredentialsId = "";
     private String apiKeyEnvVar = "";
 
@@ -104,17 +108,30 @@ public class AiAgentBuilder extends Builder implements SimpleBuildStep, AiAgentC
     }
 
     @Override
-    public AgentType getAgentType() {
-        return agentType;
+    public AiAgentTypeHandler getAgent() {
+        if (agent == null) {
+            agent = createLegacyAgent(agentType);
+        }
+        return agent;
     }
 
     @DataBoundSetter
-    public void setAgentType(AgentType agentType) {
-        this.agentType = agentType == null ? AgentType.CLAUDE_CODE : agentType;
+    public void setAgent(AiAgentTypeHandler agent) {
+        this.agent = agent;
+        AgentType mapped = AgentType.fromString(agent == null ? null : agent.getId());
+        this.agentType = mapped;
     }
 
-    public AgentType[] getAgentTypes() {
-        return AgentType.values();
+    @Deprecated
+    public AgentType getAgentType() {
+        return AgentType.fromString(getAgent().getId());
+    }
+
+    @DataBoundSetter
+    @Deprecated
+    public void setAgentType(AgentType agentType) {
+        this.agentType = agentType == null ? AgentType.CLAUDE_CODE : agentType;
+        this.agent = createLegacyAgent(this.agentType);
     }
 
     @Override
@@ -227,24 +244,38 @@ public class AiAgentBuilder extends Builder implements SimpleBuildStep, AiAgentC
         this.setupScript = Util.fixNull(setupScript);
     }
 
-    @Override
+    @Deprecated
     public boolean isCodexCustomConfigEnabled() {
+        if (getAgent() instanceof CodexAgentHandler codex) {
+            return codex.isCustomConfigEnabled();
+        }
         return codexCustomConfigEnabled;
     }
 
     @DataBoundSetter
+    @Deprecated
     public void setCodexCustomConfigEnabled(boolean codexCustomConfigEnabled) {
         this.codexCustomConfigEnabled = codexCustomConfigEnabled;
+        if (getAgent() instanceof CodexAgentHandler codex) {
+            codex.setCustomConfigEnabled(codexCustomConfigEnabled);
+        }
     }
 
-    @Override
+    @Deprecated
     public String getCodexCustomConfigToml() {
+        if (getAgent() instanceof CodexAgentHandler codex) {
+            return codex.getCustomConfigToml();
+        }
         return codexCustomConfigToml;
     }
 
     @DataBoundSetter
+    @Deprecated
     public void setCodexCustomConfigToml(String codexCustomConfigToml) {
         this.codexCustomConfigToml = Util.fixNull(codexCustomConfigToml);
+        if (getAgent() instanceof CodexAgentHandler codex) {
+            codex.setCustomConfigToml(codexCustomConfigToml);
+        }
     }
 
     @Override
@@ -269,12 +300,20 @@ public class AiAgentBuilder extends Builder implements SimpleBuildStep, AiAgentC
     @Override
     public String getEffectiveApiKeyEnvVar() {
         String custom = Util.fixEmptyAndTrim(apiKeyEnvVar);
-        return custom != null ? custom : agentType.getDefaultApiKeyEnvVar();
+        return custom != null ? custom : getAgent().getDefaultApiKeyEnvVar();
     }
 
     private Object readResolve() {
-        if (agentType == null) {
-            agentType = AgentType.CLAUDE_CODE;
+        if (agent == null) {
+            agentType = agentType == null ? AgentType.CLAUDE_CODE : agentType;
+            AiAgentTypeHandler migrated = createLegacyAgent(agentType);
+            if (migrated instanceof CodexAgentHandler codexHandler) {
+                codexHandler.setCustomConfigEnabled(codexCustomConfigEnabled);
+                codexHandler.setCustomConfigToml(codexCustomConfigToml);
+            }
+            agent = migrated;
+        } else {
+            agentType = AgentType.fromString(agent.getId());
         }
         model = Util.fixNull(model);
         prompt = Util.fixNull(prompt);
@@ -290,11 +329,23 @@ public class AiAgentBuilder extends Builder implements SimpleBuildStep, AiAgentC
         return this;
     }
 
+    private static AiAgentTypeHandler createLegacyAgent(AgentType type) {
+        AgentType effective = type == null ? AgentType.CLAUDE_CODE : type;
+        return switch (effective) {
+            case CODEX -> new CodexAgentHandler();
+            case CURSOR_AGENT -> new CursorAgentHandler();
+            case OPENCODE -> new OpenCodeAgentHandler();
+            case GEMINI_CLI -> new GeminiCliAgentHandler();
+            case CLAUDE_CODE -> new ClaudeCodeAgentHandler();
+        };
+    }
+
     @Extension
     @Symbol("aiAgent")
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-        public AgentType[] getAgentTypes() {
-            return AgentType.values();
+        public List<Descriptor<AiAgentTypeHandler>> getAgentDescriptors() {
+            return DescriptorVisibilityFilter.apply(
+                    null, Jenkins.get().getDescriptorList(AiAgentTypeHandler.class));
         }
 
         @Override

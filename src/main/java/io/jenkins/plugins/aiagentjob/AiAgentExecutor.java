@@ -93,34 +93,15 @@ final class AiAgentExecutor {
             }
         }
 
-        if (config.getAgentType() == AgentType.OPENCODE) {
-            if (config.isYoloMode()) {
-                extraEnv.put(
-                        "OPENCODE_PERMISSION",
-                        "{\"edit\":\"allow\",\"bash\":\"allow\",\"webfetch\":\"allow\",\"external_directory\":\"allow\",\"doom_loop\":\"allow\"}");
-            } else if (config.isRequireApprovals()) {
-                extraEnv.put(
-                        "OPENCODE_PERMISSION",
-                        "{\"edit\":\"ask\",\"bash\":\"ask\",\"webfetch\":\"ask\",\"external_directory\":\"ask\",\"doom_loop\":\"ask\"}");
-            }
-        }
         extraEnv.put("AI_AGENT_PROMPT", prompt);
         extraEnv.put("AI_AGENT_MODEL", model);
         extraEnv.put("AI_AGENT_JOB", run.getParent().getFullName());
         extraEnv.put("AI_AGENT_BUILD_NUMBER", String.valueOf(run.getNumber()));
 
         String setupScript = Util.replaceMacro(Util.fixNull(config.getSetupScript()), env).trim();
-        FilePath tempCodexHome = null;
-
-        if (config.getAgentType() == AgentType.CODEX && config.isCodexCustomConfigEnabled()) {
-            tempCodexHome = prepareCodexHome(workspace, config.getCodexCustomConfigToml());
-            String codexHome = tempCodexHome.getRemote();
-            extraEnv.put("HOME", codexHome);
-            extraEnv.put("USERPROFILE", codexHome);
-            listener.getLogger()
-                    .println(
-                            "[ai-agent] Using job-scoped Codex config.toml from project configuration.");
-        }
+        AiAgentExecutionCustomization executionCustomization =
+                config.getAgent().prepareExecution(config, workspace, listener);
+        extraEnv.putAll(executionCustomization.getEnvironment());
 
         List<String> agentCommand;
         if (!commandOverride.isEmpty()) {
@@ -156,7 +137,7 @@ final class AiAgentExecutor {
                         : commandOverride;
         int invocationId =
                 action.markStarted(
-                        config.getAgentType(),
+                        config.getAgent().getDescriptor().getDisplayName(),
                         model,
                         commandLine,
                         config.isYoloMode(),
@@ -206,16 +187,7 @@ final class AiAgentExecutor {
                                             + e.getMessage());
                 }
             }
-            if (tempCodexHome != null) {
-                try {
-                    tempCodexHome.deleteRecursive();
-                } catch (Exception e) {
-                    listener.getLogger()
-                            .println(
-                                    "[ai-agent] Warning: could not delete temporary Codex home: "
-                                            + e.getMessage());
-                }
-            }
+            executionCustomization.cleanup(listener);
         }
 
         if (outputHandler.wasDeniedByApproval()) {
@@ -261,23 +233,6 @@ final class AiAgentExecutor {
         FilePath tempScript = tempDir.createTextTempFile("ai-agent-setup", ".sh", combinedScript);
         tempScript.chmod(0755);
         return tempScript;
-    }
-
-    /**
-     * Creates a temporary HOME/USERPROFILE directory with a run-scoped ~/.codex/config.toml for
-     * Codex jobs that opt into custom configuration.
-     */
-    private static FilePath prepareCodexHome(FilePath workspace, String codexConfigToml)
-            throws IOException, InterruptedException {
-        FilePath tempDir =
-                new FilePath(
-                        workspace.getChannel(),
-                        new File(System.getProperty("java.io.tmpdir")).getAbsolutePath());
-        FilePath homeDir = tempDir.child("ai-agent-codex-home-" + System.nanoTime());
-        FilePath codexDir = homeDir.child(".codex");
-        codexDir.mkdirs();
-        codexDir.child("config.toml").write(Util.fixNull(codexConfigToml), "UTF-8");
-        return homeDir;
     }
 
     /**

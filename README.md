@@ -11,7 +11,7 @@ Plugin ID (artifactId): `ai-agent-job`
 
 ## Features
 
-- **Reusable build step** — add `Run AI Agent` to Freestyle jobs or Pipeline via `step([$class: 'AiAgentBuilder', ...])`.
+- **Reusable build step** — add `Run AI Agent` to Freestyle jobs or Pipeline via `aiAgent(...)`.
 - **Multiple agent support** — Claude Code, Codex CLI, Cursor Agent, OpenCode, and Gemini CLI.
 - **Inline conversation view** — live-streaming conversation on the build page with structured display of assistant messages, tool calls with inputs/outputs, and thinking blocks. Multiple invocations in the same build are shown as separate cards (latest expanded, older collapsible).
 - **Markdown rendering** — assistant and result messages are rendered as formatted HTML.
@@ -53,7 +53,7 @@ Build page showing a Cursor Agent conversation with tool calls, markdown-rendere
    - **YOLO mode** — skip confirmation prompts in the agent.
    - **Approvals** — require human approval for tool calls.
    - **Setup script** — shell commands to run before the agent (install tools, source dotfiles, export secrets).
-   - **Custom Codex config.toml** — optional, for Codex jobs to override settings/MCP per job.
+   - **Custom Codex config.toml** — optional, shown only for Codex runs to override settings/MCP per job.
    - **Environment variables** — inject additional env vars (`KEY=VALUE`, one per line).
    - **Command override** — replace the default command template entirely.
    - **Extra CLI args** — append flags to the generated command.
@@ -163,15 +163,20 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full contribution guidelines.
 
 ```
 src/main/java/io/jenkins/plugins/aiagentjob/
-├── AiAgentBuilder.java             # Build step: agent execution
+├── AiAgentBuilder.java             # Build step and shared execution settings
 ├── AiAgentConfiguration.java       # Shared execution settings contract
-├── AiAgentTypeHandler.java         # Extension point for agent command construction
-├── BuiltinAiAgentTypeHandlers.java # Built-in handlers for supported agents
+├── AiAgentTypeHandler.java         # Describable extension point for agent implementations
+├── ClaudeCodeAgentHandler.java     # Claude Code agent implementation
+├── CodexAgentHandler.java          # Codex implementation (+ optional config.toml settings)
+├── CursorAgentHandler.java         # Cursor Agent implementation
+├── OpenCodeAgentHandler.java       # OpenCode implementation (+ permission env behavior)
+├── GeminiCliAgentHandler.java      # Gemini CLI implementation
 ├── AiAgentRunAction.java           # Per-build action: conversation UI, streaming, approvals
 ├── AiAgentLogParser.java           # JSONL log parser for all agent formats
 ├── AgentUsageStats.java            # Token/cost/duration stats normalization
-├── AgentType.java                  # Enum of supported agents and default API-key env var names
-├── AiAgentCommandFactory.java      # Command-line construction per agent
+├── AiAgentCommandFactory.java      # Command-line construction per selected handler
+├── AiAgentExecutionCustomization.java # Agent-specific env vars and cleanup hooks
+├── AgentType.java                  # Legacy enum kept for migration/compatibility
 ├── ExecutionRegistry.java          # In-memory registry for live execution state
 └── package-info.java               # Package-level API documentation
 ```
