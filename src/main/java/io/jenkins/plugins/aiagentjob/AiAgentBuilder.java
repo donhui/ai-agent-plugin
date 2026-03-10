@@ -53,7 +53,7 @@ public class AiAgentBuilder extends Builder implements SimpleBuildStep, AiAgentC
     private boolean failOnAgentError = true;
     private String setupScript = "";
     private String apiCredentialsId = "";
-    private String apiKeyEnvVar = "";
+    private String apiEnvVarName = "";
 
     @DataBoundConstructor
     public AiAgentBuilder() {}
@@ -237,18 +237,18 @@ public class AiAgentBuilder extends Builder implements SimpleBuildStep, AiAgentC
         this.apiCredentialsId = Util.fixNull(apiCredentialsId);
     }
 
-    public String getApiKeyEnvVar() {
-        return apiKeyEnvVar;
+    public String getApiEnvVarName() {
+        return apiEnvVarName;
     }
 
     @DataBoundSetter
-    public void setApiKeyEnvVar(String apiKeyEnvVar) {
-        this.apiKeyEnvVar = Util.fixNull(apiKeyEnvVar);
+    public void setApiEnvVarName(String apiEnvVarName) {
+        this.apiEnvVarName = Util.fixNull(apiEnvVarName);
     }
 
     @Override
     public String getEffectiveApiKeyEnvVar() {
-        String custom = Util.fixEmptyAndTrim(apiKeyEnvVar);
+        String custom = Util.fixEmptyAndTrim(apiEnvVarName);
         return custom != null ? custom : getAgent().getDefaultApiKeyEnvVar();
     }
 
@@ -264,7 +264,7 @@ public class AiAgentBuilder extends Builder implements SimpleBuildStep, AiAgentC
         environmentVariables = Util.fixNull(environmentVariables);
         setupScript = Util.fixNull(setupScript);
         apiCredentialsId = Util.fixNull(apiCredentialsId);
-        apiKeyEnvVar = Util.fixNull(apiKeyEnvVar);
+        apiEnvVarName = Util.fixNull(apiEnvVarName);
         approvalTimeoutSeconds = Math.max(1, approvalTimeoutSeconds);
         return this;
     }

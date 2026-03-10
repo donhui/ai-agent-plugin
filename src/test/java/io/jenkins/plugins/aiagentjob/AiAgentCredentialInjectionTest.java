@@ -104,7 +104,7 @@ public class AiAgentCredentialInjectionTest {
                             b.setAgent(new OpenCodeAgentHandler());
                             b.setPrompt("test");
                             b.setApiCredentialsId("custom-key");
-                            b.setApiKeyEnvVar("ANTHROPIC_API_KEY");
+                            b.setApiEnvVarName("ANTHROPIC_API_KEY");
                             b.setCommandOverride(
                                     "echo \"{\\\"type\\\":\\\"system\\\",\\\"key_set\\\":\\\"$(test -n \\\"$ANTHROPIC_API_KEY\\\" && echo yes || echo no)\\\"}\"");
                             b.setFailOnAgentError(true);
@@ -163,7 +163,7 @@ public class AiAgentCredentialInjectionTest {
     public void effectiveApiKeyEnvVar_defaultsToAgentType() {
         AiAgentBuilder project = new AiAgentBuilder();
         project.setAgent(new ClaudeCodeAgentHandler());
-        project.setApiKeyEnvVar("");
+        project.setApiEnvVarName("");
         assertEquals("ANTHROPIC_API_KEY", project.getEffectiveApiKeyEnvVar());
 
         project.setAgent(new GeminiCliAgentHandler());
@@ -174,7 +174,7 @@ public class AiAgentCredentialInjectionTest {
     public void effectiveApiKeyEnvVar_respectsCustomOverride() {
         AiAgentBuilder project = new AiAgentBuilder();
         project.setAgent(new OpenCodeAgentHandler());
-        project.setApiKeyEnvVar("ANTHROPIC_API_KEY");
+        project.setApiEnvVarName("ANTHROPIC_API_KEY");
         assertEquals("ANTHROPIC_API_KEY", project.getEffectiveApiKeyEnvVar());
     }
 }

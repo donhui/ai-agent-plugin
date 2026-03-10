@@ -33,7 +33,7 @@
   </f:entry>
 
   <f:advanced>
-    <f:entry title="API Key env var override" field="apiKeyEnvVar">
+    <f:entry title="API Key env var override" field="apiEnvVarName">
       <f:textbox />
     </f:entry>
 
