@@ -1,6 +1,7 @@
 package io.jenkins.plugins.aiagentjob;
 
 import hudson.model.Action;
+import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.Run;
 import hudson.security.csrf.CrumbIssuer;
@@ -149,8 +150,10 @@ public class AiAgentRunAction implements Action, RunAction2 {
             return latest.model;
         }
         try {
+            AiAgentStatsExtractor extractor = resolveStatsExtractor(latest.id);
             String detected =
-                    AgentUsageStats.fromLogFile(getRawLogFile(latest.id)).getDetectedModel();
+                    AgentUsageStats.fromLogFile(getRawLogFile(latest.id), extractor)
+                            .getDetectedModel();
             if (!detected.isEmpty()) {
                 return detected;
             }
@@ -227,7 +230,8 @@ public class AiAgentRunAction implements Action, RunAction2 {
             return Collections.emptyList();
         }
         try {
-            return AiAgentLogParser.parse(raw);
+            AiAgentLogFormat format = resolveLogFormat(invocationId);
+            return AiAgentLogParser.parse(raw, format);
         } catch (IOException e) {
             return Collections.singletonList(
                     new AiAgentLogParser.EventView(
@@ -243,6 +247,37 @@ public class AiAgentRunAction implements Action, RunAction2 {
         }
     }
 
+    private AiAgentLogFormat resolveLogFormat(int invocationId) {
+        AiAgentTypeHandler handler = resolveHandler(invocationId);
+        return handler == null ? null : handler.getLogFormat();
+    }
+
+    private AiAgentStatsExtractor resolveStatsExtractor(int invocationId) {
+        AiAgentTypeHandler handler = resolveHandler(invocationId);
+        return handler == null ? null : handler.getStatsExtractor();
+    }
+
+    private AiAgentTypeHandler resolveHandler(int invocationId) {
+        InvocationRecord inv = getInvocation(invocationId);
+        if (inv == null) {
+            return null;
+        }
+        String agentDisplayName = inv.getAgentType();
+        if (agentDisplayName == null || agentDisplayName.isEmpty()) {
+            return null;
+        }
+        for (Descriptor<AiAgentTypeHandler> d :
+                Jenkins.get().getDescriptorList(AiAgentTypeHandler.class)) {
+            if (agentDisplayName.equals(d.getDisplayName())) {
+                try {
+                    return d.clazz.getDeclaredConstructor().newInstance();
+                } catch (ReflectiveOperationException ignored) {
+                }
+            }
+        }
+        return null;
+    }
+
     public AgentUsageStats getUsageStats() {
         int invocationId = resolveRequestedInvocationId();
         return getUsageStats(invocationId);
@@ -254,7 +289,8 @@ public class AiAgentRunAction implements Action, RunAction2 {
             return new AgentUsageStats();
         }
         try {
-            return AgentUsageStats.fromLogFile(raw);
+            AiAgentStatsExtractor extractor = resolveStatsExtractor(invocationId);
+            return AgentUsageStats.fromLogFile(raw, extractor);
         } catch (IOException e) {
             return new AgentUsageStats();
         }
@@ -303,8 +339,10 @@ public class AiAgentRunAction implements Action, RunAction2 {
             return invocation.model;
         }
         try {
+            AiAgentStatsExtractor extractor = resolveStatsExtractor(invocationId);
             String detected =
-                    AgentUsageStats.fromLogFile(getRawLogFile(invocationId)).getDetectedModel();
+                    AgentUsageStats.fromLogFile(getRawLogFile(invocationId), extractor)
+                            .getDetectedModel();
             if (!detected.isEmpty()) {
                 return detected;
             }
@@ -411,6 +449,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
         long lineCount = 0;
 
         if (raw != null && raw.exists()) {
+            AiAgentLogFormat format = resolveLogFormat(invocationId);
             try (BufferedReader reader =
                     Files.newBufferedReader(raw.toPath(), StandardCharsets.UTF_8)) {
                 String line;
@@ -420,7 +459,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
                         continue;
                     }
                     AiAgentLogParser.EventView ev =
-                            AiAgentLogParser.parseLine(lineCount, line).toEventView();
+                            AiAgentLogParser.parseLine(lineCount, line, format).toEventView();
                     if (!ev.isEmpty()) {
                         newEvents.add(ev);
                     }

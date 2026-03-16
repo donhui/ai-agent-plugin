@@ -11,8 +11,18 @@ import java.util.List;
 /**
  * Describable extension point for an AI agent implementation.
  *
- * <p>Implementations define their default command, default API key env var, and can contribute
- * agent-specific environment setup/cleanup.
+ * <p>Implementations must define:
+ *
+ * <ul>
+ *   <li>{@link #getId()} — stable identifier
+ *   <li>{@link #getDefaultApiKeyEnvVar()} — env var for the API key
+ *   <li>{@link #buildDefaultCommand} — CLI command to launch the agent
+ *   <li>{@link #getLogFormat()} — parser for the agent's JSONL output
+ *   <li>{@link #getStatsExtractor()} — usage stats extractor for the agent's JSONL output
+ * </ul>
+ *
+ * <p>Implementations may optionally override {@link #prepareExecution} to contribute agent-specific
+ * environment setup/cleanup.
  */
 public abstract class AiAgentTypeHandler extends AbstractDescribableImpl<AiAgentTypeHandler>
         implements ExtensionPoint {
@@ -28,4 +38,21 @@ public abstract class AiAgentTypeHandler extends AbstractDescribableImpl<AiAgent
             throws IOException, InterruptedException {
         return AiAgentExecutionCustomization.empty();
     }
+
+    /**
+     * Returns the log format parser for this agent's JSONL output.
+     *
+     * <p>The returned format's {@link AiAgentLogFormat#classify} method should return {@code null}
+     * for any JSON it does not recognise, so the parser can fall through to the shared format and
+     * generic fallback.
+     */
+    public abstract AiAgentLogFormat getLogFormat();
+
+    /**
+     * Returns the stats extractor for this agent's JSONL output.
+     *
+     * <p>The returned extractor's {@link AiAgentStatsExtractor#extract} method should return {@code
+     * false} for any JSON it does not recognise, so the shared extractor handles it as a fallback.
+     */
+    public abstract AiAgentStatsExtractor getStatsExtractor();
 }
