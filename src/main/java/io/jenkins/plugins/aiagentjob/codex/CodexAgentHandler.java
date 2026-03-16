@@ -1,10 +1,17 @@
-package io.jenkins.plugins.aiagentjob;
+package io.jenkins.plugins.aiagentjob.codex;
 
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.TaskListener;
+
+import io.jenkins.plugins.aiagentjob.AiAgentConfiguration;
+import io.jenkins.plugins.aiagentjob.AiAgentExecutionCustomization;
+import io.jenkins.plugins.aiagentjob.AiAgentLogFormat;
+import io.jenkins.plugins.aiagentjob.AiAgentStatsExtractor;
+import io.jenkins.plugins.aiagentjob.AiAgentTempFiles;
+import io.jenkins.plugins.aiagentjob.AiAgentTypeHandler;
 
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -92,6 +99,16 @@ public final class CodexAgentHandler extends AiAgentTypeHandler {
     @DataBoundSetter
     public void setCustomConfigToml(String customConfigToml) {
         this.customConfigToml = Util.fixNull(customConfigToml);
+    }
+
+    @Override
+    public AiAgentLogFormat getLogFormat() {
+        return CodexLogFormat.INSTANCE;
+    }
+
+    @Override
+    public AiAgentStatsExtractor getStatsExtractor() {
+        return CodexStatsExtractor.INSTANCE;
     }
 
     @Extension

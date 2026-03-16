@@ -1,10 +1,16 @@
-package io.jenkins.plugins.aiagentjob;
+package io.jenkins.plugins.aiagentjob.opencode;
 
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Util;
 import hudson.model.Descriptor;
 import hudson.model.TaskListener;
+
+import io.jenkins.plugins.aiagentjob.AiAgentConfiguration;
+import io.jenkins.plugins.aiagentjob.AiAgentExecutionCustomization;
+import io.jenkins.plugins.aiagentjob.AiAgentLogFormat;
+import io.jenkins.plugins.aiagentjob.AiAgentStatsExtractor;
+import io.jenkins.plugins.aiagentjob.AiAgentTypeHandler;
 
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -56,6 +62,16 @@ public final class OpenCodeAgentHandler extends AiAgentTypeHandler {
                     "{\"edit\":\"ask\",\"bash\":\"ask\",\"webfetch\":\"ask\",\"external_directory\":\"ask\",\"doom_loop\":\"ask\"}");
         }
         return customization;
+    }
+
+    @Override
+    public AiAgentLogFormat getLogFormat() {
+        return OpenCodeLogFormat.INSTANCE;
+    }
+
+    @Override
+    public AiAgentStatsExtractor getStatsExtractor() {
+        return OpenCodeStatsExtractor.INSTANCE;
     }
 
     @Extension

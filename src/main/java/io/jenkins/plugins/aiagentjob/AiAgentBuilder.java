@@ -21,6 +21,8 @@ import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 
+import io.jenkins.plugins.aiagentjob.claudecode.ClaudeCodeAgentHandler;
+
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
 

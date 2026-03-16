@@ -1,8 +1,13 @@
-package io.jenkins.plugins.aiagentjob;
+package io.jenkins.plugins.aiagentjob.cursor;
 
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.Descriptor;
+
+import io.jenkins.plugins.aiagentjob.AiAgentConfiguration;
+import io.jenkins.plugins.aiagentjob.AiAgentLogFormat;
+import io.jenkins.plugins.aiagentjob.AiAgentStatsExtractor;
+import io.jenkins.plugins.aiagentjob.AiAgentTypeHandler;
 
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -42,6 +47,16 @@ public final class CursorAgentHandler extends AiAgentTypeHandler {
         }
         command.add(prompt);
         return command;
+    }
+
+    @Override
+    public AiAgentLogFormat getLogFormat() {
+        return CursorLogFormat.INSTANCE;
+    }
+
+    @Override
+    public AiAgentStatsExtractor getStatsExtractor() {
+        return CursorStatsExtractor.INSTANCE;
     }
 
     @Extension
