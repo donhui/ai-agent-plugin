@@ -208,18 +208,20 @@ src/main/java/io/jenkins/plugins/aiagentjob/
 ├── AiAgentBuilder.java             # Build step and shared execution settings
 ├── AiAgentConfiguration.java       # Shared execution settings contract
 ├── AiAgentTypeHandler.java         # Describable extension point for agent implementations
-├── ClaudeCodeAgentHandler.java     # Claude Code agent implementation
-├── CodexAgentHandler.java          # Codex implementation (+ optional config.toml settings)
-├── CursorAgentHandler.java         # Cursor Agent implementation
-├── OpenCodeAgentHandler.java       # OpenCode implementation (+ permission env behavior)
-├── GeminiCliAgentHandler.java      # Gemini CLI implementation
 ├── AiAgentRunAction.java           # Per-build action: conversation UI, streaming, approvals
 ├── AiAgentLogParser.java           # JSONL log parser for all agent formats
-├── AgentUsageStats.java            # Token/cost/duration stats normalization
+├── AiAgentLogFormat.java           # Format-specific classification interface
+├── AiAgentStatsExtractor.java      # Per-agent usage-stats extraction interface
 ├── AiAgentCommandFactory.java      # Command-line construction per selected handler
+├── AiAgentExecutor.java            # Subprocess lifecycle, env wiring, approval gates
 ├── AiAgentExecutionCustomization.java # Agent-specific env vars and cleanup hooks
 ├── ExecutionRegistry.java          # In-memory registry for live execution state
-└── package-info.java               # Package-level API documentation
+├── LogFormatUtils.java             # Shared JSON field extraction helpers
+├── claudecode/                     # Claude Code agent implementation
+├── codex/                          # Codex CLI implementation (+ optional config.toml)
+├── cursor/                         # Cursor Agent implementation
+├── geminicli/                      # Gemini CLI implementation
+└── opencode/                       # OpenCode implementation
 ```
 
 ## License
