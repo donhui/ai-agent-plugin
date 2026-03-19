@@ -200,26 +200,73 @@
     let html = '';
     for (let i = 0; i < approvals.length; i++) {
       const approval = approvals[i];
-      html += '<div class="ai-approval-card">';
+      html += '<div class="ai-approval-card" data-approval-id="' + esc(approval.id) + '">';
       html += '<strong>Approval required:</strong> ' + esc(approval.toolName);
       html += ' <span class="ai-approval-summary">- ' + esc(approval.inputSummary) + '</span>';
       html += '<div class="actions">';
-      html += '<form method="post" action="' + esc(approveUrl) + '" class="ai-inline-form">';
-      html += '<input type="hidden" name="id" value="' + esc(approval.id) + '" />';
-      if (crumbRequestField && crumbValue) {
-        html += '<input type="hidden" name="' + esc(crumbRequestField) + '" value="' + esc(crumbValue) + '" />';
-      }
-      html += '<button type="submit" class="jenkins-button jenkins-button--primary">Approve</button></form>';
-      html += '<form method="post" action="' + esc(denyUrl) + '" class="ai-inline-form">';
-      html += '<input type="hidden" name="id" value="' + esc(approval.id) + '" />';
-      if (crumbRequestField && crumbValue) {
-        html += '<input type="hidden" name="' + esc(crumbRequestField) + '" value="' + esc(crumbValue) + '" />';
-      }
-      html += '<input type="text" name="reason" placeholder="reason (optional)" class="ai-approval-reason jenkins-input" />';
-      html += '<button type="submit" class="jenkins-button jenkins-button--primary">Deny</button></form>';
+      html += '<button type="button" class="jenkins-button jenkins-button--primary ai-approve-btn" '
+            + 'data-url="' + esc(approveUrl) + '" data-id="' + esc(approval.id) + '">Approve</button>';
+      html += '<input type="text" placeholder="reason (optional)" class="ai-approval-reason ai-deny-reason-input jenkins-input" />';
+      html += '<button type="button" class="jenkins-button jenkins-button--primary ai-deny-btn" '
+            + 'data-url="' + esc(denyUrl) + '" data-id="' + esc(approval.id) + '">Deny</button>';
       html += '</div></div>';
     }
     container.innerHTML = html;
+
+    container.querySelectorAll('.ai-approve-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        sendApprovalAction(btn.dataset.url, btn.dataset.id, null, crumbRequestField, crumbValue, btn.closest('.ai-approval-card'));
+      });
+    });
+    container.querySelectorAll('.ai-deny-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const card = btn.closest('.ai-approval-card');
+        const reasonInput = card.querySelector('.ai-deny-reason-input');
+        const reason = reasonInput ? reasonInput.value : '';
+        sendApprovalAction(btn.dataset.url, btn.dataset.id, reason, crumbRequestField, crumbValue, card);
+      });
+    });
+  }
+
+  function sendApprovalAction(url, id, reason, crumbRequestField, crumbValue, card) {
+    var buttons = card.querySelectorAll('button');
+    buttons.forEach(function(b) { b.disabled = true; });
+
+    var params = new URLSearchParams();
+    params.append('id', id);
+    if (reason != null && reason !== '') {
+      params.append('reason', reason);
+    }
+
+    var headers = { 'Accept': 'application/json' };
+    if (crumbRequestField && crumbValue) {
+      headers[crumbRequestField] = crumbValue;
+    }
+
+    fetch(url + '?' + params.toString(), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: headers
+    }).then(function(response) {
+      if (response.ok) {
+        var isDeny = reason != null;
+        card.innerHTML = '<div class="ai-approval-decided ' + (isDeny ? 'ai-approval-denied' : 'ai-approval-approved') + '">'
+          + (isDeny ? '✗ Denied' : '✓ Approved') + '</div>';
+      } else {
+        buttons.forEach(function(b) { b.disabled = false; });
+        response.text().then(function(text) {
+          var errEl = card.querySelector('.ai-approval-error');
+          if (!errEl) {
+            errEl = document.createElement('div');
+            errEl.className = 'ai-approval-error';
+            card.appendChild(errEl);
+          }
+          errEl.textContent = 'Error: ' + (text || response.statusText);
+        });
+      }
+    }).catch(function() {
+      buttons.forEach(function(b) { b.disabled = false; });
+    });
   }
 
   function renderStats(container, stats) {

@@ -41,11 +41,11 @@ class StaplerEndpointSecurityTest {
         assertTrue(AiAgentRunAction.class.getMethod("doIndex").isAnnotationPresent(GET.class));
         assertTrue(
                 AiAgentRunAction.class
-                        .getMethod("doApprove", String.class)
+                        .getMethod("doApprove", StaplerRequest2.class, String.class)
                         .isAnnotationPresent(RequirePOST.class));
         assertTrue(
                 AiAgentRunAction.class
-                        .getMethod("doDeny", String.class, String.class)
+                        .getMethod("doDeny", StaplerRequest2.class, String.class, String.class)
                         .isAnnotationPresent(RequirePOST.class));
     }
 

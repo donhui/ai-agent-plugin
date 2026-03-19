@@ -430,14 +430,32 @@
   margin-top: 6px;
 }
 
-.ai-inline-form {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.ai-approval-card button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .ai-approval-reason {
   width: 180px;
+}
+
+.ai-approval-decided {
+  font-weight: 600;
+  padding: 4px 0;
+}
+
+.ai-approval-approved {
+  color: var(--success-color, #1ea446);
+}
+
+.ai-approval-denied {
+  color: var(--error-color, #e13c3c);
+}
+
+.ai-approval-error {
+  color: var(--error-color, #e13c3c);
+  font-size: 0.85em;
+  margin-top: 4px;
 }
 
 .ai-stats {

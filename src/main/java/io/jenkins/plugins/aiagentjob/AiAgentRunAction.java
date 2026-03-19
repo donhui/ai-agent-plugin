@@ -15,6 +15,7 @@ import net.sf.json.JSONObject;
 
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.Stapler;
+import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 import org.kohsuke.stapler.verb.GET;
 
@@ -397,7 +398,7 @@ public class AiAgentRunAction implements Action, RunAction2 {
     }
 
     @RequirePOST
-    public Object doApprove(@QueryParameter String id) {
+    public Object doApprove(StaplerRequest2 req, @QueryParameter String id) {
         checkBuildPermission();
         if (id == null || id.trim().isEmpty()) {
             return HttpResponses.errorWithoutStack(400, "Missing approval id");
@@ -407,11 +408,15 @@ public class AiAgentRunAction implements Action, RunAction2 {
         if (liveExecution == null || !liveExecution.approve(id)) {
             return HttpResponses.errorWithoutStack(404, "Approval request not found");
         }
+        if (wantsJson(req)) {
+            return jsonOk();
+        }
         return HttpResponses.redirectToDot();
     }
 
     @RequirePOST
-    public Object doDeny(@QueryParameter String id, @QueryParameter String reason) {
+    public Object doDeny(
+            StaplerRequest2 req, @QueryParameter String id, @QueryParameter String reason) {
         checkBuildPermission();
         if (id == null || id.trim().isEmpty()) {
             return HttpResponses.errorWithoutStack(400, "Missing approval id");
@@ -421,7 +426,21 @@ public class AiAgentRunAction implements Action, RunAction2 {
         if (liveExecution == null || !liveExecution.deny(id, reason)) {
             return HttpResponses.errorWithoutStack(404, "Approval request not found");
         }
+        if (wantsJson(req)) {
+            return jsonOk();
+        }
         return HttpResponses.redirectToDot();
+    }
+
+    private static boolean wantsJson(StaplerRequest2 req) {
+        String accept = req == null ? null : req.getHeader("Accept");
+        return accept != null && accept.contains("application/json");
+    }
+
+    private static org.kohsuke.stapler.json.JsonHttpResponse jsonOk() {
+        JSONObject ok = new JSONObject();
+        ok.put("ok", true);
+        return new org.kohsuke.stapler.json.JsonHttpResponse(ok, 200);
     }
 
     @GET
