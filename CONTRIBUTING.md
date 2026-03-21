@@ -58,6 +58,19 @@ src/test/resources/     # Test fixtures (JSONL logs)
 
 CI runs on every PR with Java 17 and 21 on Ubuntu.
 
+## Adding a New Agent
+
+Each agent type lives in its own sub-package (`claudecode/`, `codex/`, etc.) with three files:
+
+1. **Handler** — extends `AiAgentTypeHandler`, annotated with `@Extension` and `@Symbol`.
+2. **Log format** — implements `AiAgentLogFormat` to classify agent-specific JSONL events.
+3. **Stats extractor** — implements `AiAgentStatsExtractor` to extract token/cost data.
+
+Plus test fixtures (`.jsonl`) and integration tests in `AiAgentRecordedConversationTest`.
+
+See the [Adding a New Agent](README.md#adding-a-new-agent) section in the README for a
+complete walkthrough with code examples.
+
 ## Reporting Issues
 
 Open an issue on GitHub with:

@@ -1,14 +1,15 @@
 # Jenkins Official Publishing Checklist
 
-This checklist is the execution plan to move this plugin from a personal repository to official Jenkins distribution.
+This checklist tracked the migration of this plugin from a personal repository to official
+Jenkins distribution. The repository now lives at `jenkinsci/ai-agent-plugin`.
 
 ## Locked Decisions
 
 - Plugin ID (`artifactId`): `ai-agent` (final, must not change after official publication).
-- Target `jenkinsci` repository name: `ai-agent-plugin`.
-- Current source repository: `https://github.com/bvolpato/jenkins-ai-agent-plugin`.
+- `jenkinsci` repository: `ai-agent-plugin`.
+- Previous source repository (deleted): `https://github.com/bvolpato/jenkins-ai-agent-plugin`.
 
-## 1. Pre-Hosting Readiness (Already Done)
+## 1. Pre-Hosting Readiness ✅
 
 - [x] License is present and declared in `pom.xml`.
 - [x] Jenkinsfile is present for Jenkins CI.
@@ -16,72 +17,25 @@ This checklist is the execution plan to move this plugin from a personal reposit
 - [x] Plugin metadata uses stable ID and Jenkins baseline.
 - [x] Security policy and contribution docs are present.
 
-## 2. Open Hosting Request (Next Action)
+## 2. Hosting Request ✅
 
-Open:
-`https://github.com/jenkins-infra/repository-permissions-updater/issues/new/choose`
-Template: `🏠 Hosting request`
+- [x] Hosting request opened and accepted.
 
-Use these values:
+## 3. Repository Permissions Updater (RPU) ✅
 
-- Repository URL:
-  `https://github.com/bvolpato/jenkins-ai-agent-plugin`
-- New Repository Name:
-  `ai-agent-plugin`
-- Description:
-  `Jenkins plugin that provides a reusable AI Agent build step to run coding agents (Claude Code, Codex, Cursor Agent, OpenCode, Gemini CLI) with streamed JSON logs, approvals, and usage stats.`
-- GitHub users to have commit permission:
-  `@bvolpato`
-  `@<add-any-co-maintainers>`
-- Jenkins project users to have release permission:
-  `<your Jenkins account ID(s), not GitHub handles>`
-- Automated release via GitHub Actions:
-  `Yes`
+- [x] RPU file exists with `github: "jenkinsci/ai-agent-plugin"`.
+- [x] `developers` contains at least one Jenkins account ID.
+- [x] `cd.enabled: true` is present.
 
-## 3. Repository Permissions Updater (RPU) PR
+## 4. Post-Transfer Repository Update ✅
 
-After hosting is accepted, ensure a file exists in:
-`https://github.com/jenkins-infra/repository-permissions-updater/tree/master/permissions`
+- [x] `pom.xml` `<url>` points to `https://github.com/jenkinsci/ai-agent-plugin`.
+- [x] README badge/link URLs updated from `bvolpato/jenkins-ai-agent-plugin` to `jenkinsci/ai-agent-plugin`.
+- [x] Plugin ID remains `ai-agent`.
 
-Expected file content shape:
+## 5. Enable Jenkins CD Workflow ✅
 
-```yaml
----
-name: "ai-agent"
-github: "jenkinsci/ai-agent-plugin"
-paths:
-  - "io/jenkins/plugins/ai-agent"
-developers:
-  - "<jenkins-account-id>"
-cd:
-  enabled: true
-```
-
-Checklist:
-
-- [ ] `developers` contains at least one Jenkins account ID.
-- [ ] `cd.enabled: true` is present.
-- [ ] `github` is `jenkinsci/ai-agent-plugin`.
-
-## 4. Post-Transfer Repository Update
-
-Once the repository exists at `jenkinsci/ai-agent-plugin`:
-
-- [ ] Update `pom.xml` `<url>` to `https://github.com/jenkinsci/ai-agent-plugin`.
-- [ ] Update README badge/link URLs from `bvolpato/jenkins-ai-agent-plugin` to `jenkinsci/ai-agent-plugin`.
-- [ ] Keep plugin ID as `ai-agent`.
-
-## 5. Enable Jenkins CD Workflow
-
-Use Jenkins official template:
-`https://raw.githubusercontent.com/jenkinsci/.github/master/workflow-templates/cd.yaml`
-
-Checklist:
-
-- [ ] Add `.github/workflows/cd.yaml`.
-- [ ] Initially prefer `workflow_dispatch` trigger only during cutover.
-- [ ] Enable `check_run` trigger after first successful official release.
-- [ ] Confirm repository secrets appear: `MAVEN_USERNAME`, `MAVEN_TOKEN`.
+- [x] `.github/workflows/cd.yaml` is present.
 
 ## 6. First Official Release
 
@@ -93,5 +47,6 @@ Checklist:
 ## 7. Cleanup and Transition
 
 - [x] Retire personal-repo `release.yml` flow to avoid multiple release paths.
-- [ ] Add a short migration note in README that official releases now come from `jenkinsci/ai-agent-plugin`.
+- [x] Delete personal repository `bvolpato/jenkins-ai-agent-plugin`.
+- [x] Update all references to point to `jenkinsci/ai-agent-plugin`.
 - [ ] Keep `main` on next `-SNAPSHOT` after each release.

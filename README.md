@@ -1,6 +1,6 @@
 # AI Agent
 
-[![CI](https://github.com/bvolpato/jenkins-ai-agent-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/bvolpato/jenkins-ai-agent-plugin/actions/workflows/ci.yml)
+[![CI](https://github.com/jenkinsci/ai-agent-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/jenkinsci/ai-agent-plugin/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Jenkins Plugin](https://img.shields.io/badge/Jenkins-2.528.3+-blue.svg)](https://www.jenkins.io/)
 
@@ -205,16 +205,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full contribution guidelines.
 
 ```
 src/main/java/io/jenkins/plugins/aiagentjob/
-├── AiAgentBuilder.java             # Build step and shared execution settings
-├── AiAgentConfiguration.java       # Shared execution settings contract
+├── AiAgentBuilder.java             # SimpleBuildStep: configuration UI and build execution
+├── AiAgentConfiguration.java       # Shared execution settings contract (interface)
 ├── AiAgentTypeHandler.java         # Describable extension point for agent implementations
 ├── AiAgentRunAction.java           # Per-build action: conversation UI, streaming, approvals
 ├── AiAgentLogParser.java           # JSONL log parser for all agent formats
 ├── AiAgentLogFormat.java           # Format-specific classification interface
+├── AgentUsageStats.java            # Token/cost/duration stats normalization
 ├── AiAgentStatsExtractor.java      # Per-agent usage-stats extraction interface
 ├── AiAgentCommandFactory.java      # Command-line construction per selected handler
 ├── AiAgentExecutor.java            # Subprocess lifecycle, env wiring, approval gates
 ├── AiAgentExecutionCustomization.java # Agent-specific env vars and cleanup hooks
+├── AiAgentTempFiles.java           # Temp directory management for build workspaces
 ├── ExecutionRegistry.java          # In-memory registry for live execution state
 ├── LogFormatUtils.java             # Shared JSON field extraction helpers
 ├── claudecode/                     # Claude Code agent implementation
@@ -223,6 +225,28 @@ src/main/java/io/jenkins/plugins/aiagentjob/
 ├── geminicli/                      # Gemini CLI implementation
 └── opencode/                       # OpenCode implementation
 ```
+
+### Adding a New Agent
+
+Each agent lives in its own sub-package with up to three files. Use the `cursor/` package as a
+minimal reference:
+
+1. **Handler** (`ExampleAgentHandler extends AiAgentTypeHandler`) — annotate with `@Extension`
+   and `@Symbol("example")`. Implement `getId()`, `getDefaultApiKeyEnvVar()`,
+   `buildDefaultCommand()`, `getLogFormat()`, and `getStatsExtractor()`.
+2. **Log format** (`ExampleLogFormat implements AiAgentLogFormat`) — classify agent-specific
+   JSONL events into `ParsedLine` types. Return `null` for unrecognised lines so the shared
+   parser handles them. If the agent emits stream-json compatible with Claude Code, reuse
+   `ClaudeCodeLogFormat.INSTANCE` (see `GeminiCliAgentHandler`).
+3. **Stats extractor** (`ExampleStatsExtractor implements AiAgentStatsExtractor`) — extract
+   token/cost data from JSONL. Return `true` if handled, `false` for fallback.
+4. **Test fixtures** — add `.jsonl` conversation and stats fixtures under
+   `src/test/resources/.../fixtures/`, with tests in `AiAgentRecordedConversationTest` and
+   `AgentUsageStatsTest`.
+
+Optional: override `prepareExecution()` in the handler for custom env vars or cleanup hooks
+(see `CodexAgentHandler`), and add a `config.jelly` + help HTML files for agent-specific UI
+fields.
 
 ## License
 
