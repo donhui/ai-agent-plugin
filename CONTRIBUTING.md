@@ -14,7 +14,11 @@ Contributions are welcome. This document covers the basics for getting started.
 mvn clean verify
 ```
 
-This runs compilation, tests, SpotBugs, JaCoCo coverage, and format checking in one go.
+This runs compilation,
+          tests,
+          SpotBugs,
+          JaCoCo coverage,
+          and format checking in one go.
 
 ## Code Style
 
@@ -28,18 +32,34 @@ mvn com.spotify.fmt:fmt-maven-plugin:format
 
 ## Testing
 
-Tests use the [Jenkins Test Harness](https://github.com/jenkinsci/jenkins-test-harness), which spins up a real Jenkins instance for integration tests. Unit tests use JUnit 4.
+Tests are implemented using the Jenkins Test Harness, which spins up a real Jenkins instance to perform integration testing. This ensures that plugin behavior is validated in a realistic environment.
 
-Test fixtures for log parsing live in `src/test/resources/io/jenkins/plugins/aiagentjob/fixtures/`. When adding support for a new agent format or modifying parsing logic, add or update the corresponding `.jsonl` fixture.
-
+Test fixtures used for log parsing are located in:
+```bash
+  src/test/resources/io/jenkins/plugins/aiagentjob/fixtures/
+```
+-Fixtures are stored in .jsonl format
+-Each file represents sample logs for specific agent formats
+-When adding support for a new agent format or modifying parsing logic:
+    -Add a new fixture file, or
+    -Update existing .jsonl files accordingly
+    
 Run tests:
-
+To execute all tests:
 ```bash
 mvn clean test
 ```
+Code Coverage:
+Code coverage reports are generated using JaCoCo during the build process.
+To generate the report:
+```bash
+mvn verify
+```
 
-Coverage reports are generated under `target/site/jacoco/` after `mvn verify`.
-
+After execution, coverage reports can be found at:
+```bash
+target/site/jacoco/
+```
 ## Project Structure
 
 ```
